@@ -5,6 +5,7 @@ use std::io;
 
 use clap;
 use itertools::Itertools;
+use winreg::{RegKey, enums as wre};
 
 use crate::error::{Blame, Result};
 
@@ -57,8 +58,6 @@ pub fn try_main(args: Args) -> Result<i32> {
 
 fn install(amend_pathext: bool) -> Result<()> {
     use std::env;
-    use self::winreg::RegKey;
-    use self::winreg::enums as wre;
 
     // Set up file association.
     let cs_path = env::current_exe()?;
@@ -107,8 +106,6 @@ fn install(amend_pathext: bool) -> Result<()> {
 
     // Amend PATHEXT.
     if amend_pathext {
-        use std::ascii::AsciiExt;
-
         let hklm = RegKey::predef(wre::HKEY_LOCAL_MACHINE);
         let env = hklm.open_subkey(r#"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"#)?;
 
@@ -125,9 +122,6 @@ fn install(amend_pathext: bool) -> Result<()> {
 }
 
 fn uninstall() -> Result<()> {
-    use self::winreg::RegKey;
-    use self::winreg::enums as wre;
-
     let mut ignored_missing = false;
     {
         let mut notify = || ignored_missing = true;
@@ -145,8 +139,6 @@ fn uninstall() -> Result<()> {
     println!("Deleted run-cargo-eval registry entry.");
 
     {
-        use std::ascii::AsciiExt;
-
         let hklm = RegKey::predef(wre::HKEY_LOCAL_MACHINE);
         let env = hklm.open_subkey(r#"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"#)?;
 

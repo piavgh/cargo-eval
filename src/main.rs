@@ -281,11 +281,13 @@ fn parse_args() -> SubCommand {
             )
         )
         .subcommand(templates::Args::subcommand())
-
         .chain_map(|app| {
-          #[cfg(windows)]
-          return app.subcommand(file_assoc::Args::subcommand());
-          app
+          #[cfg(windows)] {
+            app.subcommand(file_assoc::Args::subcommand())
+          }
+          #[cfg(not(windows))] {
+            app
+          }
         })
         .get_matches();
 
