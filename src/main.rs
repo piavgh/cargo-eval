@@ -90,7 +90,6 @@ struct Args {
     debug: bool,
     dep: Vec<String>,
     dep_extern: Vec<String>,
-    extern_: Vec<String>,
     force: bool,
     unstable_features: Vec<String>,
     use_bincache: Option<bool>,
@@ -202,14 +201,6 @@ fn parse_args() -> SubCommand {
                 .help("Like `dep`, except that it *also* adds a `#[macro_use] extern crate name;` item for expression and loop scripts.  Note that this only works if the name of the dependency and the name of the library it generates are exactly the same.")
                 .long("dep-extern")
                 .short("D")
-                .takes_value(true)
-                .multiple(true)
-                .requires("expr_or_loop")
-            )
-            .arg(Arg::with_name("extern")
-                .help("Adds an `#[macro_use] extern crate name;` item for expressions and loop scripts.")
-                .long("extern")
-                .short("x")
                 .takes_value(true)
                 .multiple(true)
                 .requires("expr_or_loop")
@@ -348,7 +339,6 @@ fn parse_args() -> SubCommand {
         debug: m.is_present("debug"),
         dep: owned_vec_string(m.values_of("dep")),
         dep_extern: owned_vec_string(m.values_of("dep_extern")),
-        extern_: owned_vec_string(m.values_of("extern")),
         force: m.is_present("force"),
         unstable_features: owned_vec_string(m.values_of("unstable_features")),
         use_bincache: yes_or_no(m.value_of("use_bincache")),
@@ -549,10 +539,7 @@ fn try_main() -> Result<i32> {
             })
             .map(|d| format!("#[macro_use] extern crate {};", d));
 
-        let externs = args.extern_.iter()
-            .map(|n| format!("#[macro_use] extern crate {};", n));
-
-        let mut items: Vec<_> = unstable_features.chain(dep_externs).chain(externs).collect();
+        let mut items: Vec<_> = unstable_features.chain(dep_externs).collect();
         items.sort();
         items
     };
