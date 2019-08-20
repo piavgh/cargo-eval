@@ -232,38 +232,6 @@ pub mod inner {
     use crate::error::MainError;
     use super::MigrationKind;
 
-    #[cfg(old_rustc_windows_linking_behaviour)]
-    mod uuid {
-        // This *is* in `uuid-sys` ≤ 0.1.2, but it doesn't work in Rust < 1.15.
-        #[link(name="uuid")]
-        extern {
-            static FOLDERID_LocalAppData: super::winapi::KNOWNFOLDERID;
-            static FOLDERID_RoamingAppData: super::winapi::KNOWNFOLDERID;
-        }
-
-        pub unsafe fn local_app_data() -> &'static super::winapi::KNOWNFOLDERID {
-            &FOLDERID_LocalAppData
-        }
-
-        pub unsafe fn roaming_app_data() -> &'static super::winapi::KNOWNFOLDERID {
-            &FOLDERID_RoamingAppData
-        }
-    }
-
-    #[cfg(not(old_rustc_windows_linking_behaviour))]
-    mod uuid {
-        // WARNING: do not use with rustc < 1.15; it will cause linking errors.
-        extern crate uuid;
-
-        pub unsafe fn local_app_data() -> &'static super::winapi::KNOWNFOLDERID {
-            &uuid::FOLDERID_LocalAppData
-        }
-
-        pub unsafe fn roaming_app_data() -> &'static super::winapi::KNOWNFOLDERID {
-            &uuid::FOLDERID_RoamingAppData
-        }
-    }
-
     /**
     Gets the last-modified time of a file, in milliseconds since the UNIX epoch.
     */
@@ -290,7 +258,7 @@ pub mod inner {
     On Windows, LocalAppData is where user- and machine- specific data should go, but it *might* be more appropriate to use whatever the official name for "Program Data" is, though.
     */
     pub fn get_cache_dir() -> Result<PathBuf, MainError> {
-        let rfid = unsafe { uuid::local_app_data() };
+        let rfid = unsafe { &uuid::FOLDERID_LocalAppData };
         let dir = SHGetKnownFolderPath(rfid, 0, ::std::ptr::null_mut())
             .map_err(|e| e.to_string())?;
         Ok(Path::new(&dir).to_path_buf().join("Cargo"))
@@ -302,7 +270,7 @@ pub mod inner {
     This is *not* chosen to match the location where Cargo places its cache data, because Cargo is *wrong*.  This is at least *less wrong*.
     */
     pub fn get_config_dir() -> Result<PathBuf, MainError> {
-        let rfid = unsafe { uuid::roaming_app_data() };
+        let rfid = unsafe { &uuid::FOLDERID_RoamingAppData };
         let dir = SHGetKnownFolderPath(rfid, 0, ::std::ptr::null_mut())
             .map_err(|e| e.to_string())?;
         Ok(Path::new(&dir).to_path_buf().join("Cargo"))
