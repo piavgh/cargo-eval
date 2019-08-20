@@ -348,7 +348,7 @@ fn parse_args() -> SubCommand {
 }
 
 fn main() {
-    env_logger::init().unwrap();
+    env_logger::init();
     info!("starting");
     info!("args: {:?}", std::env::args().collect::<Vec<_>>());
     let stderr = &mut std::io::stderr();
@@ -405,7 +405,7 @@ fn try_main() -> Result<i32> {
         }
     }
 
-    if log_enabled!(log::LogLevel::Debug) {
+    if log_enabled!(log::Level::Debug) {
         let scp = get_script_cache_path()?;
         let bcp = get_binary_cache_path()?;
         debug!("script-cache path: {:?}", scp);

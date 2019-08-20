@@ -23,11 +23,11 @@ suppress-cargo-output = ["chan"]
 [dependencies]
 chan = { version = "0.1.19", optional = true }
 clap = "2.33"
-env_logger = "0.4.2"
+env_logger = "0.6"
 hoedown = "6.0.0"
 itertools = "0.5.10" # version 0.6 incompatible with Rust < 1.12
 lazy_static = "0.2.6"
-log = "0.3.7"
+log = "0.4"
 open = "1.2.0"
 regex = "0.2.1"
 shaman = "0.1.0"
