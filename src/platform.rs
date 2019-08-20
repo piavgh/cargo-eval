@@ -56,7 +56,7 @@ mod inner {
     use std::{cmp, env, fs, io};
     use std::os::unix::ffi::OsStrExt;
     use std::os::unix::fs::MetadataExt;
-    use error::{MainError, Blame};
+    use crate::error::{MainError, Blame};
     use super::MigrationKind;
 
     /**
@@ -143,7 +143,7 @@ mod inner {
                     (true, false) => {
                         info!("migrating {:?} -> {:?}", old_script_cache, new_script_cache);
                         if kind.for_real() {
-                            try!(fs::rename(&old_script_cache, &new_script_cache));
+                            fs::rename(&old_script_cache, &new_script_cache)?;
                         }
                         log.push(format!("Moved {:?} to {:?}.", old_script_cache, new_script_cache));
                     },
@@ -162,7 +162,7 @@ mod inner {
                     (true, false) => {
                         info!("migrating {:?} -> {:?}", old_binary_cache, new_binary_cache);
                         if kind.for_real() {
-                            try!(fs::rename(&old_binary_cache, &new_binary_cache));
+                            fs::rename(&old_binary_cache, &new_binary_cache)?;
                         }
                         log.push(format!("Moved {:?} to {:?}.", old_script_cache, new_script_cache));
                     },
@@ -172,10 +172,10 @@ mod inner {
                 }
 
                 // If `$CARGO_HOME/.cargo` is empty, remove it.
-                if try!(fs::read_dir(&old_base)).next().is_none() {
+                if fs::read_dir(&old_base)?.next().is_none() {
                     info!("{:?} is empty; removing", old_base);
                     if kind.for_real() {
-                        try!(fs::remove_dir(&old_base));
+                        fs::remove_dir(&old_base)?;
                     }
                     log.push(format!("Removed empty directory {:?}", old_base));
                 } else {
@@ -199,7 +199,7 @@ mod inner {
     where R: io::Read {
         use std::ffi::OsStr;
         let mut buf = vec![];
-        try!(r.read_to_end(&mut buf));
+        r.read_to_end(&mut buf)?;
         Ok(OsStr::from_bytes(&buf).into())
     }
 
@@ -230,7 +230,7 @@ pub mod inner {
     use std::path::{Path, PathBuf};
     use std::mem;
     use std::os::windows::ffi::{OsStrExt, OsStringExt};
-    use error::MainError;
+    use crate::error::MainError;
     use super::MigrationKind;
 
     #[cfg(old_rustc_windows_linking_behaviour)]
@@ -292,8 +292,8 @@ pub mod inner {
     */
     pub fn get_cache_dir() -> Result<PathBuf, MainError> {
         let rfid = unsafe { uuid::local_app_data() };
-        let dir = try!(SHGetKnownFolderPath(rfid, 0, ::std::ptr::null_mut())
-            .map_err(|e| e.to_string()));
+        let dir = SHGetKnownFolderPath(rfid, 0, ::std::ptr::null_mut())
+            .map_err(|e| e.to_string())?;
         Ok(Path::new(&dir).to_path_buf().join("Cargo"))
     }
 
@@ -304,8 +304,8 @@ pub mod inner {
     */
     pub fn get_config_dir() -> Result<PathBuf, MainError> {
         let rfid = unsafe { uuid::roaming_app_data() };
-        let dir = try!(SHGetKnownFolderPath(rfid, 0, ::std::ptr::null_mut())
-            .map_err(|e| e.to_string()));
+        let dir = SHGetKnownFolderPath(rfid, 0, ::std::ptr::null_mut())
+            .map_err(|e| e.to_string())?;
         Ok(Path::new(&dir).to_path_buf().join("Cargo"))
     }
 
@@ -364,7 +364,7 @@ pub mod inner {
         for word in path.as_os_str().encode_wide() {
             let lo = (word & 0xff) as u8;
             let hi = (word >> 8) as u8;
-            try!(w.write_all(&[lo, hi]));
+            w.write_all(&[lo, hi])?;
         }
         Ok(())
     }
@@ -372,7 +372,7 @@ pub mod inner {
     pub fn read_path<R>(r: &mut R) -> io::Result<PathBuf>
     where R: io::Read {
         let mut buf = vec![];
-        try!(r.read_to_end(&mut buf));
+        r.read_to_end(&mut buf)?;
 
         let mut words = Vec::with_capacity(buf.len() / 2);
         let mut it = buf.iter().cloned();

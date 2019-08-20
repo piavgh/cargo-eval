@@ -63,7 +63,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-eval"
-version = "0.2.9"
+version = "0.1.0"
 dependencies = [
  "atty 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "chan 0.1.23 (registry+https://github.com/rust-lang/crates.io-index)",
