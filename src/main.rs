@@ -15,7 +15,7 @@ extern crate env_logger;
 #[macro_use] extern crate log;
 extern crate open;
 extern crate regex;
-extern crate rustc_serialize;
+use serde::{Serialize, Deserialize};
 extern crate shaman;
 extern crate toml;
 
@@ -885,7 +885,7 @@ The metadata here serves two purposes:
 1. It records everything necessary for compilation and execution of a package.
 2. It records everything that must be exactly the same in order for a cached executable to still be valid, in addition to the content hash.
 */
-#[derive(Clone, Debug, Eq, PartialEq, RustcDecodable, RustcEncodable)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 struct PackageMetadata {
     /// Path to the script file.
     path: Option<String>,
@@ -1140,7 +1140,7 @@ where P: AsRef<Path> {
         meta_file.read_to_string(&mut s).unwrap();
         s
     };
-    let meta: PackageMetadata = rustc_serialize::json::decode(&meta_str)
+    let meta: PackageMetadata = serde_json::from_str(&meta_str)
         .map_err(|err| err.to_string())?;
 
     Ok(meta)
@@ -1162,7 +1162,7 @@ where P: AsRef<Path> {
     let meta_path = get_pkg_metadata_path(pkg_path);
     debug!("meta_path: {:?}", meta_path);
     let mut meta_file = fs::File::create(&meta_path)?;
-    let meta_str = rustc_serialize::json::encode(meta)
+    let meta_str = serde_json::to_string(meta)
         .map_err(|err| err.to_string())?;
     write!(&mut meta_file, "{}", meta_str)?;
     meta_file.flush()?;
@@ -1493,8 +1493,6 @@ fn cargo_target_by_message(input: &Input, manifest: &str, use_bincache: bool, me
 
     let stdout = BufReader::new(child.stdout.take().unwrap());
     let mut lines = stdout.lines();
-
-    use serde::{Deserialize};
 
     #[derive(Deserialize)]
     struct Target {
