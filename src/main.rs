@@ -16,7 +16,6 @@ extern crate env_logger;
 extern crate open;
 extern crate regex;
 extern crate rustc_serialize;
-extern crate semver;
 extern crate shaman;
 extern crate toml;
 
@@ -61,11 +60,10 @@ use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
-use semver::Version;
 
-use crate::error::{Blame, MainError, Result, ResultExt};
+use crate::error::{Blame, MainError, Result};
 use crate::platform::MigrationKind;
-use crate::util::{ChainMap, Defer, PathExt};
+use crate::util::{ChainMap, Defer};
 
 #[derive(Debug)]
 enum SubCommand {
@@ -667,7 +665,7 @@ fn clean_cache(max_age: u64) -> Result<()> {
     for child in fs::read_dir(cache_dir)? {
         let child = child?;
         let path = child.path();
-        if path.is_file_polyfill() { continue }
+        if path.is_file() { continue }
 
         info!("checking: {:?}", path);
 
@@ -1080,7 +1078,7 @@ fn decide_action_for(
     Next test: does the executable exist at all?
     */
     let exe_exists = match get_exe_path(action.build_kind, &action.pkg_path) {
-        Ok(exe_path) => exe_path.is_file_polyfill(),
+        Ok(exe_path) => exe_path.is_file(),
         Err(_) => false,
     };
     if !exe_exists {
@@ -1095,7 +1093,7 @@ fn decide_action_for(
     */
     if action.use_bincache {
         let exe_meta_hash_path = get_meta_hash_path(action.use_bincache, &action.pkg_path).unwrap();
-        if !exe_meta_hash_path.is_file_polyfill() {
+        if !exe_meta_hash_path.is_file() {
             info!("recompiling because: meta hash doesn't exist or isn't a file");
             bail!(compile: true, force_compile: true)
         }
@@ -1480,29 +1478,9 @@ This will also cache this information such that `exe_path` can find it later.
 */
 fn cargo_target<P>(input: &Input, pkg_path: P, manifest: &str, use_bincache: bool, meta: &PackageMetadata) -> Result<PathBuf>
 where P: AsRef<Path> {
-    lazy_static! {
-        static ref VER_JSON_MSGS: Version = Version::parse("0.18.0").unwrap();
-    }
-
     trace!("cargo_target(_, {:?}, {:?}, {:?}, _)", pkg_path.as_ref(), manifest, use_bincache);
 
-    let cargo_ver = cargo_version()
-        .err_tag("could not determine target filename")?;
-
-    let mut use_guess = false;
-    use_guess |= work_around_issue_50();
-    use_guess |= if cargo_ver < *VER_JSON_MSGS {
-        trace!(".. cargo {:?} is too old to support JSON output", cargo_ver);
-        true
-    } else {
-        false
-    };
-
-    let exe_path = if use_guess {
-        cargo_target_by_guess(input, use_bincache, pkg_path.as_ref(), meta)?
-    } else {
-        cargo_target_by_message(input, manifest, use_bincache, meta)?
-    };
+    let exe_path = cargo_target_by_message(input, manifest, use_bincache, meta)?;
 
     trace!(".. exe_path: {:?}", exe_path);
 
@@ -1521,36 +1499,9 @@ where P: AsRef<Path> {
     Ok(exe_path)
 }
 
-/**
-Figures out where the output executable for the input should be by guessing.
-
-Depending on the configuration, this might not work.  On the other hand, this actually works (usually) prior to Cargo 0.18 (Rust 1.17).
-*/
-fn cargo_target_by_guess(input: &Input, use_bincache: bool, pkg_path: &Path, meta: &PackageMetadata) -> Result<PathBuf> {
-    trace!("cargo_target_by_guess(_, {:?}, {:?}, _)", use_bincache, pkg_path);
-
-    let profile = match meta.debug {
-        true => "debug",
-        false => "release"
-    };
-    let target_path = if use_bincache {
-        get_binary_cache_path()?
-    } else {
-        pkg_path.join("target")
-    };
-    let mut exe_path = target_path.join(profile).join(&input.package_name()).into_os_string();
-    exe_path.push(std::env::consts::EXE_SUFFIX);
-    Ok(exe_path.into())
-}
-
-/**
-Gets the path to the package's target file by parsing the output of `cargo build`.
-
-This only works on Cargo 0.18 (Rust 1.17) and higher.
-*/
+// Gets the path to the package's target file by parsing the output of `cargo build`.
 fn cargo_target_by_message(input: &Input, manifest: &str, use_bincache: bool, meta: &PackageMetadata) -> Result<PathBuf> {
     use std::io::{BufRead, BufReader};
-    use rustc_serialize::json;
 
     trace!("cargo_target_by_message(_, {:?}, {:?}, _)", manifest, use_bincache);
 
@@ -1562,95 +1513,37 @@ fn cargo_target_by_message(input: &Input, manifest: &str, use_bincache: bool, me
     trace!(".. cmd: {:?}", cmd);
 
     let mut child = cmd.spawn()?;
-    match child.wait()?.code() {
-        Some(0) => (),
-        Some(st) => return Err(format!("could not determine target filename: cargo exited with status {}", st).into()),
-        None => return Err(format!("could not determine target filename: cargo exited abnormally").into()),
-    }
 
-    let mut line = String::with_capacity(1024);
-    let mut stdout = BufReader::new(child.stdout.take().unwrap());
-    let null = json::Json::Null;
     let package_name = input.package_name();
 
-    let mut line_num = 0;
-    loop {
-        line_num += 1;
-        line.clear();
-        let bytes = stdout.read_line(&mut line)?;
-        trace!(".. line {}, {}b: {:?}", line_num, bytes, line);
-        if bytes == 0 {
-            return Err("could not determine target filename: did not find appropriate cargo message".into());
-        }
+    let stdout = BufReader::new(child.stdout.take().unwrap());
+    let mut lines = stdout.lines();
 
-        let msg = json::Json::from_str(line.trim())
-            .map_err(Box::new)?;
+    use serde::{Deserialize};
 
-        // Is this the message we're looking for?
-        if msg.find("reason").unwrap_or(&null).as_string() != Some("compiler-artifact") {
-            trace!("   couldn't find `compiler-artifact`");
-            continue;
-        }
-        if msg.find_path(&["target", "name"]).unwrap_or(&null).as_string() != Some(&package_name) {
-            trace!("   couldn't find `target.name`, or it wasn't {:?}", package_name);
-            continue;
-        }
-
-        // Looks like it; grab the path.
-        let exe_path = msg.find_path(&["filenames"])
-            .expect("could not find `filenames` in json message")
-            .as_array()
-            .expect("`filenames` in json message was not an array")
-            [0]
-            .as_string()
-            .expect("`filenames[0]` in json message was not a string");
-
-        return Ok(exe_path.into());
-    }
-}
-
-/**
-Get the version of the currently active cargo.
-*/
-fn cargo_version() -> Result<Version> {
-    use regex::Regex;
-
-    lazy_static! {
-        static ref RE_VERSION: Regex = Regex::new(r#"^cargo[ -](\S+)"#).unwrap();
+    #[derive(Deserialize)]
+    struct Target {
+      name: String,
     }
 
-    let mut cmd = Command::new("cargo");
-    cmd.arg("-V");
-
-    let child = cmd.output()?;
-    match child.status.code() {
-        Some(0) => (),
-        Some(st) => return Err(format!("could not determine cargo version: cargo exited with status {}", st).into()),
-        None => return Err(format!("could not determine cargo version: cargo exited abnormally").into()),
+    #[derive(Deserialize)]
+    struct Line {
+      reason: String,
+      target: Target,
+      filenames: Vec<PathBuf>,
     }
 
-    let stdout = String::from_utf8_lossy(&child.stdout);
-    let m = match RE_VERSION.captures(&stdout) {
-        Some(m) => m,
-        None => return Err(format!("could not determine cargo version: output did not match expected").into()),
-    };
+    while let Some(Ok(line)) = lines.next() {
+        if let Ok(mut l) = serde_json::from_str::<Line>(&line).map_err(Box::new) {
+          if l.reason == "compiler-artifact" && l.target.name == package_name {
+            let _ = child.kill();
+            return Ok(l.filenames.swap_remove(0))
+          }
+        }
+    }
 
-    let ver = m.get(1).unwrap();
-    Ok(Version::parse(ver.as_str())
-        .map_err(Box::new)?)
-}
-
-/**
-Do we need to work around [issue #50](https://github.com/DanielKeep/cargo-script/issues/50)?
-
-Sometimes, `cargo-eval` will hang when trying to read the JSON output of `cargo build`.
-*/
-fn work_around_issue_50() -> bool {
-    let suffers = cfg!(issue_50);
-    let ignored = std::env::var_os("CARGO_SCRIPT_IGNORE_ISSUE_50").is_some();
-    match (suffers, ignored) {
-        (true, true) => { trace!(".. issue 50 relevant, but ignored"); false },
-        (true, false) => { trace!(".. working around issue 50"); true },
-        (false, _) => { false },
+    match child.wait()?.code() {
+        Some(st) => Err(format!("could not determine target filename: cargo exited with status {}", st).into()),
+        None => Err(format!("could not determine target filename: cargo exited abnormally").into()),
     }
 }
