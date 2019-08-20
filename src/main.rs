@@ -136,8 +136,8 @@ impl BuildKind {
 
 fn parse_args() -> SubCommand {
     use clap::{App, Arg, ArgGroup, SubCommand, AppSettings};
-    let version = option_env!("CARGO_PKG_VERSION").unwrap_or("unknown");
-    let about = r#"Compiles and runs "Cargoified Rust scripts"."#;
+    let version = env!("CARGO_PKG_VERSION");
+    let about = "Compiles and runs “Cargoified Rust scripts”.";
 
     // "const str array slice"
     macro_rules! csas {
