@@ -340,18 +340,18 @@ enum Manifest<'s> {
 }
 
 impl<'s> Manifest<'s> {
-    pub fn into_toml(self) -> Result<toml::Table> {
+    pub fn into_toml(self) -> Result<toml::value::Table> {
         use self::Manifest::*;
         match self {
-            Toml(s) => Ok(toml::Parser::new(s).parse()
-                .ok_or("could not parse embedded manifest")?),
-            TomlOwned(ref s) => Ok(toml::Parser::new(s).parse()
-                .ok_or("could not parse embedded manifest")?),
+            Toml(s) => Ok(toml::from_str(s)
+                .map_err(|_| "could not parse embedded manifest")?),
+            TomlOwned(ref s) => Ok(toml::from_str(&s)
+                .map_err(|_| "could not parse embedded manifest")?),
             DepList(s) => Manifest::dep_list_to_toml(s),
         }
     }
 
-    fn dep_list_to_toml(s: &str) -> Result<toml::Table> {
+    fn dep_list_to_toml(s: &str) -> Result<toml::value::Table> {
         let mut r = String::new();
         r.push_str("[dependencies]\n");
         for dep in s.trim().split(',') {
@@ -365,8 +365,8 @@ impl<'s> Manifest<'s> {
             }
         }
 
-        Ok(toml::Parser::new(&r).parse()
-            .ok_or("could not parse embedded manifest")?)
+        Ok(toml::from_str(&r)
+            .map_err(|_| "could not parse embedded manifest")?)
     }
 }
 
@@ -967,7 +967,7 @@ time = "*"
 /**
 Generates a default Cargo manifest for the given input.
 */
-fn default_manifest(input: &Input) -> Result<toml::Table> {
+fn default_manifest(input: &Input) -> Result<toml::value::Table> {
     let mani_str = {
         let pkg_name = input.package_name();
         let mut subs = HashMap::with_capacity(2);
@@ -975,14 +975,14 @@ fn default_manifest(input: &Input) -> Result<toml::Table> {
         subs.insert(consts::MANI_FILE_SUB, &input.safe_name()[..]);
         templates::expand(consts::DEFAULT_MANIFEST, &subs)?
     };
-    toml::Parser::new(&mani_str).parse()
-        .ok_or_else(|| "could not parse default manifest, somehow".into())
+    toml::from_str(&mani_str)
+        .map_err(|_| "could not parse default manifest, somehow".into())
 }
 
 /**
 Generates a partial Cargo manifest containing the specified dependencies.
 */
-fn deps_manifest(deps: &[(String, String)]) -> Result<toml::Table> {
+fn deps_manifest(deps: &[(String, String)]) -> Result<toml::value::Table> {
     let mut mani_str = String::new();
     mani_str.push_str("[dependencies]\n");
 
@@ -998,8 +998,8 @@ fn deps_manifest(deps: &[(String, String)]) -> Result<toml::Table> {
         mani_str.push_str("\n");
     }
 
-    toml::Parser::new(&mani_str).parse()
-        .ok_or_else(|| "could not parse dependency manifest".into())
+    toml::from_str(&mani_str)
+        .map_err(|_| "could not parse dependency manifest".into())
 }
 
 /**
@@ -1007,11 +1007,11 @@ Given two Cargo manifests, merges the second *into* the first.
 
 Note that the "merge" in this case is relatively simple: only *top-level* tables are actually merged; everything else is just outright replaced.
 */
-fn merge_manifest(mut into_t: toml::Table, from_t: toml::Table) -> Result<toml::Table> {
+fn merge_manifest(mut into_t: toml::value::Table, from_t: toml::value::Table) -> Result<toml::value::Table> {
     for (k, v) in from_t {
         match v {
             toml::Value::Table(from_t) => {
-                use std::collections::btree_map::Entry::*;
+                use toml::map::Entry::*;
 
                 // Merge.
                 match into_t.entry(k) {
@@ -1035,7 +1035,7 @@ fn merge_manifest(mut into_t: toml::Table, from_t: toml::Table) -> Result<toml::
 
     return Ok(into_t);
 
-    fn as_table_mut(t: &mut toml::Value) -> Option<&mut toml::Table> {
+    fn as_table_mut(t: &mut toml::Value) -> Option<&mut toml::value::Table> {
         match *t {
             toml::Value::Table(ref mut t) => Some(t),
             _ => None
@@ -1046,7 +1046,7 @@ fn merge_manifest(mut into_t: toml::Table, from_t: toml::Table) -> Result<toml::
 /**
 Given a Cargo manifest, attempts to rewrite relative file paths to absolute ones, allowing the manifest to be relocated.
 */
-fn fix_manifest_paths(mani: toml::Table, base: &Path) -> Result<toml::Table> {
+fn fix_manifest_paths(mani: toml::value::Table, base: &Path) -> Result<toml::value::Table> {
     // Values that need to be rewritten:
     let paths: &[&[&str]] = &[
         &["build-dependencies", "*", "path"],
@@ -1091,7 +1091,7 @@ where F: FnMut(&mut toml::Value) -> Result<()> {
 
     if cur == "*" {
       if let toml::Value::Table(ref mut tab) = *base {
-        for v in tab.values_mut() {
+        for (_, v) in tab.iter_mut() {
             iterate_toml_mut_path(v, tail, on_each)?;
         }
       }
