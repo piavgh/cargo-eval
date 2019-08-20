@@ -1,12 +1,3 @@
-/*
-Copyright ⓒ 2017 cargo-script contributors.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
 /*!
 This module deals with setting up file associations.
 
@@ -76,7 +67,7 @@ fn install(amend_pathext: bool) -> Result<()> {
     // Set up file association.
     let cs_path = try!(env::current_exe());
     let cs_path = try!(cs_path.canonicalize());
-    let rcs_path = cs_path.with_file_name("run-cargo-script.exe");
+    let rcs_path = cs_path.with_file_name("run-cargo-eval.exe");
 
     if !rcs_path.exists() {
         return Err((Blame::Human, format!("{:?} not found", rcs_path)).into());
@@ -115,7 +106,7 @@ fn install(amend_pathext: bool) -> Result<()> {
         }
     }
 
-    println!("Created run-cargo-script registry entry.");
+    println!("Created run-cargo-eval registry entry.");
     println!("- Handler set to: {}", rcs_path);
 
     // Amend PATHEXT.
@@ -155,7 +146,7 @@ fn uninstall() -> Result<()> {
     if ignored_missing {
         println!("Ignored some missing registry entries.");
     }
-    println!("Deleted run-cargo-script registry entry.");
+    println!("Deleted run-cargo-eval registry entry.");
 
     {
         use std::ascii::AsciiExt;

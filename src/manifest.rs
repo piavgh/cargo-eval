@@ -1,14 +1,5 @@
-/*
-Copyright ⓒ 2015-2017 cargo-script contributors.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
 /*!
-This module is concerned with how `cargo-script` extracts the manfiest from a script file.
+This module is concerned with how `cargo-eval` extracts the manfiest from a script file.
 */
 extern crate hoedown;
 extern crate regex;
@@ -310,7 +301,7 @@ fn strip_hashbang(s: &str) -> &str {
 #[test]
 fn test_strip_hashbang() {
     assert_eq!(strip_hashbang("\
-#!/usr/bin/env run-cargo-script
+#!/usr/bin/env run-cargo-eval
 and the rest
 \
         "), "\

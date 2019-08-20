@@ -1,12 +1,3 @@
-/*
-Copyright ⓒ 2015-2017 cargo-script contributors.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
 /*!
 This module contains the definition of the program's main error type.
 */
@@ -132,7 +123,7 @@ pub trait ResultExt {
 impl<T> ResultExt for Result<T> {
     type Ok = T;
 
-    fn err_tag<S>(self, msg: S) -> Result<Self::Ok>
+    fn err_tag<S>(self, msg: S) -> Result<T>
     where S: Into<Cow<'static, str>> {
         match self {
             Ok(v) => Ok(v),

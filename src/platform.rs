@@ -1,12 +1,3 @@
-/*
-Copyright ⓒ 2015-2017 cargo-script contributors.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
 /*!
 This module is for platform-specific stuff.
 */
@@ -213,9 +204,9 @@ mod inner {
     }
 
     /**
-    Returns `true` if `cargo-script` should force Cargo to use coloured output.
+    Returns `true` if `cargo-eval` should force Cargo to use coloured output.
 
-    This depends on whether `cargo-script`'s STDERR is connected to a TTY or not.
+    This depends on whether `cargo-eval`'s STDERR is connected to a TTY or not.
     */
     pub fn force_cargo_color() -> bool {
         atty::is(atty::Stream::Stderr)
@@ -394,7 +385,7 @@ pub mod inner {
     }
 
     /**
-    Returns `true` if `cargo-script` should force Cargo to use coloured output.
+    Returns `true` if `cargo-eval` should force Cargo to use coloured output.
 
     Always returns `false` on Windows because colour is communicated over a side-channel.
     */

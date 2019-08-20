@@ -1,18 +1,9 @@
-/*
-Copyright ⓒ 2015-2017 cargo-script contributors.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
 /*!
-`cargo-script` is a Cargo subcommand designed to let people quickly and easily run Rust "scripts" which can make use of Cargo's package ecosystem.
+`cargo-eval` is a Cargo subcommand designed to let people quickly and easily run Rust "scripts" which can make use of Cargo's package ecosystem.
 
 Or, to put it in other words, it lets you write useful, but small, Rust programs without having to create a new directory and faff about with `Cargo.toml`.
 
-As such, `cargo-script` does two major things:
+As such, `cargo-eval` does two major things:
 
 1. Given a script, it extracts the embedded Cargo manifest and merges it with some sensible defaults.  This manifest, along with the source code, is written to a fresh Cargo package on-disk.
 
@@ -59,6 +50,7 @@ macro_rules! if_windows {
 macro_rules! if_windows {
     ($($tts:tt)*) => { {} };
 }
+const SUBCOMMAND: &'static str = "eval";
 
 mod consts;
 mod error;
@@ -174,10 +166,10 @@ fn parse_args() -> SubCommand {
         .version(version)
         .about(about)
         .setting(AppSettings::SubcommandRequiredElseHelp)
-        .subcommand(SubCommand::with_name("script")
+        .subcommand(SubCommand::with_name(SUBCOMMAND)
             .version(version)
             .about(about)
-            .usage("cargo script [FLAGS OPTIONS] [--] <script> <args>...")
+            .usage("cargo eval [FLAGS OPTIONS] [--] <script> <args>...")
 
             /*
             Major script modes.
@@ -342,7 +334,7 @@ fn parse_args() -> SubCommand {
         }
     }
 
-    let m = m.subcommand_matches("script").unwrap();
+    let m = m.subcommand_matches(SUBCOMMAND).unwrap();
 
     fn owned_vec_string<'a, I>(v: Option<I>) -> Vec<String>
     where I: ::std::iter::Iterator<Item=&'a str> {
@@ -468,7 +460,7 @@ fn try_main() -> Result<i32> {
         // If we *did not* get a `<script>` argument, that's OK.
         if args.script.is_none() {
             // Just let the user know that we did *actually* run.
-            println!("cargo script cache cleared.");
+            println!("cargo eval cache cleared.");
             return Ok(0);
         }
     }
@@ -1665,7 +1657,7 @@ fn cargo_version() -> Result<Version> {
 /**
 Do we need to work around [issue #50](https://github.com/DanielKeep/cargo-script/issues/50)?
 
-Sometimes, `cargo-script` will hang when trying to read the JSON output of `cargo build`.
+Sometimes, `cargo-eval` will hang when trying to read the JSON output of `cargo build`.
 */
 fn work_around_issue_50() -> bool {
     let suffers = cfg!(issue_50);

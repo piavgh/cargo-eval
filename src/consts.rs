@@ -1,25 +1,16 @@
-/*
-Copyright ⓒ 2015-2017 cargo-script contributors.
-
-Licensed under the MIT license (see LICENSE or <http://opensource.org
-/licenses/MIT>) or the Apache License, Version 2.0 (see LICENSE of
-<http://www.apache.org/licenses/LICENSE-2.0>), at your option. All
-files in the project carrying such notice may not be copied, modified,
-or distributed except according to those terms.
-*/
 /*!
 This module just contains any big string literals I don't want cluttering up the rest of the code.
 */
 
 /**
-The message output when the user invokes `cargo script` with no further arguments.  We need to do this ourselves because `clap` doesn't provide any way to generate this message manually.
+The message output when the user invokes `cargo eval` with no further arguments.  We need to do this ourselves because `clap` doesn't provide any way to generate this message manually.
 */
 pub const NO_ARGS_MESSAGE: &'static str = "\
 The following required arguments were not supplied:
 \t'<script>'
 
 USAGE:
-\tcargo script [FLAGS OPTIONS] [--] <script> <args>...
+\tcargo eval [FLAGS OPTIONS] [--] <script> <args>...
 
 For more information try --help";
 

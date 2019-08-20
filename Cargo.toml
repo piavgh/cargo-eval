@@ -1,10 +1,10 @@
 [package]
-name = "cargo-script"
+name = "cargo-eval"
 version = "0.2.9"
 authors = ["Daniel Keep <daniel.keep@gmail.com>"]
 
 description = "A Cargo subcommand designed to let people quickly and easily run Rust \"scripts\" which can make use of Cargo's package ecosystem."
-repository = "https://github.com/DanielKeep/cargo-script"
+repository = "https://github.com/reitermarkus/cargo-eval"
 readme = "README.md"
 license = "MIT/Apache-2.0"
 keywords = ["cargo", "script"]

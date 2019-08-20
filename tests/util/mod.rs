@@ -11,13 +11,13 @@ macro_rules! cargo_script {
 
             let cargo_lock = ::util::CARGO_MUTEX.lock().expect("could not acquire Cargo mutext");
 
-            let temp_dir = tempdir::TempDir::new("cargo-script-test").unwrap();
+            let temp_dir = tempdir::TempDir::new("cargo-eval-test").unwrap();
             let cmd_str;
             let out = {
                 let target_dir = ::std::env::var("CARGO_TARGET_DIR")
                     .unwrap_or_else(|_| String::from("target"));
-                let mut cmd = Command::new(format!("{}/debug/cargo-script", target_dir));
-                cmd.arg("script");
+                let mut cmd = Command::new(format!("{}/debug/cargo-eval", target_dir));
+                cmd.arg("eval");
                 cmd.arg("--pkg-path").arg(temp_dir.path());
                 $(
                     cmd.arg($args);
@@ -33,12 +33,12 @@ macro_rules! cargo_script {
             };
 
             if let Ok(out) = out.as_ref() {
-                println!("cargo-script cmd: {}", cmd_str);
-                println!("cargo-script stdout:");
+                println!("cargo-eval cmd: {}", cmd_str);
+                println!("cargo-eval stdout:");
                 println!("-----");
                 println!("{}", out.stdout);
                 println!("-----");
-                println!("cargo-script stderr:");
+                println!("cargo-eval stderr:");
                 println!("-----");
                 println!("{}", out.stderr);
                 println!("-----");
