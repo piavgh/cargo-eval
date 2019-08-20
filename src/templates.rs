@@ -33,7 +33,6 @@ impl Args {
 
             .subcommand(SubCommand::with_name("dump")
                 .about("Outputs the contents of a template to standard output.")
-
                 .arg(Arg::with_name("template")
                     .help("Name of template to dump.")
                     .index(1)
@@ -47,7 +46,6 @@ impl Args {
 
             .subcommand(SubCommand::with_name("show")
                 .about("Open the template folder in a file browser.")
-
                 .arg(Arg::with_name("show_path")
                     .help("Output the path to the template folder to standard output instead.")
                     .long("path")
