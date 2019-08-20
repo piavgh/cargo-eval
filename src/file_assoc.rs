@@ -1,15 +1,11 @@
-/*!
-This module deals with setting up file associations.
-
-Since this only makes sense on Windows, this entire module is Windows-only.
-*/
-#![cfg(windows)]
-extern crate itertools;
-extern crate winreg;
+//! This module deals with setting up file associations.
+//! Since this only makes sense on Windows, this entire module is Windows-only.
 
 use std::io;
+
 use clap;
-use self::itertools::Itertools;
+use itertools::Itertools;
+
 use crate::error::{Blame, Result};
 
 #[derive(Debug)]
