@@ -244,7 +244,6 @@ For example, a minimal expression template that adds a dependency and imports so
 // cargo-deps: itertools="0.6.2"
 #![allow(unused_imports)]
 #{prelude}
-extern crate itertools;
 use std::io::prelude::*;
 use std::mem;
 use itertools::Itertools;

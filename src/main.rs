@@ -13,11 +13,8 @@ extern crate clap;
 extern crate env_logger;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
-extern crate open;
-extern crate regex;
+
 use serde::{Serialize, Deserialize};
-extern crate shaman;
-extern crate toml;
 
 #[cfg(feature="chan")]
 #[macro_use] extern crate chan;

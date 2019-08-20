@@ -216,14 +216,9 @@ mod inner {
 pub mod inner {
     #![allow(non_snake_case)]
 
-    extern crate ole32;
-    extern crate shell32;
-    extern crate winapi;
-
     pub use super::inner_unix_or_windows::current_time;
 
     use std::ffi::OsString;
-    use std::fmt;
     use std::fs;
     use std::io;
     use std::path::{Path, PathBuf};
@@ -231,6 +226,20 @@ pub mod inner {
     use std::os::windows::ffi::{OsStrExt, OsStringExt};
     use crate::error::MainError;
     use super::MigrationKind;
+
+    use winapi::{
+      shared::{
+        minwindef::DWORD,
+        ntdef::{HANDLE, PWSTR},
+        winerror::{HRESULT, S_OK},
+      },
+      um::{
+        combaseapi::CoTaskMemFree,
+        shlobj::SHGetKnownFolderPath,
+        shtypes::KNOWNFOLDERID,
+        knownfolders::{FOLDERID_LocalAppData, FOLDERID_RoamingAppData},
+      },
+    };
 
     /**
     Gets the last-modified time of a file, in milliseconds since the UNIX epoch.
@@ -258,8 +267,8 @@ pub mod inner {
     On Windows, LocalAppData is where user- and machine- specific data should go, but it *might* be more appropriate to use whatever the official name for "Program Data" is, though.
     */
     pub fn get_cache_dir() -> Result<PathBuf, MainError> {
-        let rfid = unsafe { &uuid::FOLDERID_LocalAppData };
-        let dir = SHGetKnownFolderPath(rfid, 0, ::std::ptr::null_mut())
+        let rfid = &FOLDERID_LocalAppData;
+        let dir = sh_get_known_folder_path(rfid, 0, ::std::ptr::null_mut())
             .map_err(|e| e.to_string())?;
         Ok(Path::new(&dir).to_path_buf().join("Cargo"))
     }
@@ -270,27 +279,16 @@ pub mod inner {
     This is *not* chosen to match the location where Cargo places its cache data, because Cargo is *wrong*.  This is at least *less wrong*.
     */
     pub fn get_config_dir() -> Result<PathBuf, MainError> {
-        let rfid = unsafe { &uuid::FOLDERID_RoamingAppData };
-        let dir = SHGetKnownFolderPath(rfid, 0, ::std::ptr::null_mut())
+        let rfid = &FOLDERID_RoamingAppData;
+        let dir = sh_get_known_folder_path(rfid, 0, ::std::ptr::null_mut())
             .map_err(|e| e.to_string())?;
         Ok(Path::new(&dir).to_path_buf().join("Cargo"))
     }
 
-    type WinResult<T> = Result<T, WinError>;
-
-    struct WinError(winapi::HRESULT);
-
-    impl fmt::Display for WinError {
-        fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-            write!(fmt, "HRESULT({})", self.0)
-        }
-    }
-
-    fn SHGetKnownFolderPath(rfid: &winapi::KNOWNFOLDERID, dwFlags: winapi::DWORD, hToken: winapi::HANDLE) -> WinResult<OsString> {
-        use self::winapi::PWSTR;
+    fn sh_get_known_folder_path(rfid: &KNOWNFOLDERID, dwFlags: DWORD, hToken: HANDLE) -> Result<OsString, HRESULT> {
         let mut psz_path: PWSTR = unsafe { mem::uninitialized() };
         let hresult = unsafe {
-            shell32::SHGetKnownFolderPath(
+            SHGetKnownFolderPath(
                 rfid,
                 dwFlags,
                 hToken,
@@ -298,20 +296,20 @@ pub mod inner {
             )
         };
 
-        if hresult == winapi::S_OK {
+        if hresult == S_OK {
             let r = unsafe { pwstr_to_os_string(psz_path) };
-            unsafe { ole32::CoTaskMemFree(psz_path as *mut _) };
+            unsafe { CoTaskMemFree(psz_path as *mut _) };
             Ok(r)
         } else {
-            Err(WinError(hresult))
+            Err(hresult)
         }
     }
 
-    unsafe fn pwstr_to_os_string(ptr: winapi::PWSTR) -> OsString {
+    unsafe fn pwstr_to_os_string(ptr: PWSTR) -> OsString {
         OsStringExt::from_wide(::std::slice::from_raw_parts(ptr, pwstr_len(ptr)))
     }
 
-    unsafe fn pwstr_len(mut ptr: winapi::PWSTR) -> usize {
+    unsafe fn pwstr_len(mut ptr: PWSTR) -> usize {
         let mut len = 0;
         while *ptr != 0 {
             len += 1;
