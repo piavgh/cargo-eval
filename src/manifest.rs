@@ -356,15 +356,12 @@ impl<'s> Manifest<'s> {
         r.push_str("[dependencies]\n");
         for dep in s.trim().split(',') {
             // If there's no version specified, add one.
-            match dep.contains('=') {
-                true => {
-                    r.push_str(dep);
-                    r.push_str("\n");
-                },
-                false => {
-                    r.push_str(dep);
-                    r.push_str("=\"*\"\n");
-                }
+            if dep.contains('=') {
+              r.push_str(dep);
+              r.push_str("\n");
+            } else {
+              r.push_str(dep);
+              r.push_str("=\"*\"\n");
             }
         }
 
@@ -979,7 +976,7 @@ fn default_manifest(input: &Input) -> Result<toml::Table> {
         templates::expand(consts::DEFAULT_MANIFEST, &subs)?
     };
     toml::Parser::new(&mani_str).parse()
-        .ok_or("could not parse default manifest, somehow".into())
+        .ok_or_else(|| "could not parse default manifest, somehow".into())
 }
 
 /**
@@ -994,7 +991,7 @@ fn deps_manifest(deps: &[(String, String)]) -> Result<toml::Table> {
         mani_str.push_str("=");
 
         // We only want to quote the version if it *isn't* a table.
-        let quotes = match ver.starts_with("{") { true => "", false => "\"" };
+        let quotes = if ver.starts_with('{') { "" } else { "\"" };
         mani_str.push_str(quotes);
         mani_str.push_str(ver);
         mani_str.push_str(quotes);
@@ -1002,7 +999,7 @@ fn deps_manifest(deps: &[(String, String)]) -> Result<toml::Table> {
     }
 
     toml::Parser::new(&mani_str).parse()
-        .ok_or("could not parse dependency manifest".into())
+        .ok_or_else(|| "could not parse dependency manifest".into())
 }
 
 /**
@@ -1063,17 +1060,12 @@ fn fix_manifest_paths(mani: toml::Table, base: &Path) -> Result<toml::Table> {
 
     for path in paths {
         iterate_toml_mut_path(&mut mani, path, &mut |v| {
-            match *v {
-                toml::Value::String(ref mut s) => {
-                    if Path::new(s).is_relative() {
-                        let p = base.join(&*s);
-                        match p.to_str() {
-                            Some(p) => *s = p.into(),
-                            None => {},
-                        }
-                    }
-                },
-                _ => {}
+            if let toml::Value::String(ref mut s) = *v {
+              if Path::new(s).is_relative() {
+                  if let Some(p) = base.join(&*s).to_str() {
+                    *s = p.into();
+                  }
+              }
             }
             Ok(())
         })?
@@ -1090,7 +1082,7 @@ Iterates over the specified TOML values via a path specification.
 */
 fn iterate_toml_mut_path<F>(base: &mut toml::Value, path: &[&str], on_each: &mut F) -> Result<()>
 where F: FnMut(&mut toml::Value) -> Result<()> {
-    if path.len() == 0 {
+    if path.is_empty() {
         return on_each(base);
     }
 
@@ -1098,26 +1090,15 @@ where F: FnMut(&mut toml::Value) -> Result<()> {
     let tail = &path[1..];
 
     if cur == "*" {
-        match *base {
-            toml::Value::Table(ref mut tab) => {
-                for (_, v) in tab {
-                    iterate_toml_mut_path(v, tail, on_each)?;
-                }
-            },
-            _ => {},
+      if let toml::Value::Table(ref mut tab) = *base {
+        for v in tab.values_mut() {
+            iterate_toml_mut_path(v, tail, on_each)?;
         }
-    } else {
-        match *base {
-            toml::Value::Table(ref mut tab) => {
-                match tab.get_mut(cur) {
-                    Some(v) => {
-                        iterate_toml_mut_path(v, tail, on_each)?;
-                    },
-                    None => {},
-                }
-            },
-            _ => {},
-        }
+      }
+    } else if let toml::Value::Table(ref mut tab) = *base {
+      if let Some(v) = tab.get_mut(cur) {
+        iterate_toml_mut_path(v, tail, on_each)?;
+      }
     }
 
     Ok(())

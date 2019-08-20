@@ -38,7 +38,7 @@ Length of time to suppress Cargo output.
 #[cfg(feature="suppress-cargo-output")]
 const CARGO_OUTPUT_TIMEOUT: u64 = 2_000/*ms*/;
 
-const SUBCOMMAND: &'static str = "eval";
+const SUBCOMMAND: &str = "eval";
 
 mod consts;
 mod error;
@@ -106,15 +106,15 @@ enum BuildKind {
 }
 
 impl BuildKind {
-    fn can_exec_directly(&self) -> bool {
-        match *self {
+    fn can_exec_directly(self) -> bool {
+        match self {
             BuildKind::Normal => true,
             BuildKind::Test | BuildKind::Bench => false,
         }
     }
 
-    fn exec_command(&self) -> &'static str {
-        match *self {
+    fn exec_command(self) -> &'static str {
+        match self {
             BuildKind::Normal => panic!("asked for exec command for normal build"),
             BuildKind::Test => "test",
             BuildKind::Bench => "bench",
@@ -281,12 +281,11 @@ fn parse_args() -> SubCommand {
             )
         )
         .subcommand(templates::Args::subcommand())
-        .chain_map(|mut app| {
-            drop(&mut app); // avoid warning
-            #[cfg(windows)] {
-                app = app.subcommand(file_assoc::Args::subcommand());
-            }
-            app
+
+        .chain_map(|app| {
+          #[cfg(windows)]
+          return app.subcommand(file_assoc::Args::subcommand());
+          app
         })
         .get_matches();
 
@@ -304,7 +303,7 @@ fn parse_args() -> SubCommand {
 
     fn owned_vec_string<'a, I>(v: Option<I>) -> Vec<String>
     where I: ::std::iter::Iterator<Item=&'a str> {
-        v.map(|itr| itr.map(Into::into).collect()).unwrap_or(vec![])
+        v.map(|itr| itr.map(Into::into).collect()).unwrap_or_else(|| vec![])
     }
 
     fn yes_or_no(v: Option<&str>) -> Option<bool> {
@@ -442,7 +441,7 @@ fn try_main() -> Result<i32> {
 
             script_name = path.file_stem()
                 .map(|os| os.to_string_lossy().into_owned())
-                .unwrap_or("unknown".into());
+                .unwrap_or_else(|| "unknown".into());
 
             let mut body = String::new();
             file.read_to_string(&mut body)?;
@@ -506,7 +505,7 @@ fn try_main() -> Result<i32> {
                 Occupied(oe) => {
                     // This is *only* a problem if the versions don't match.  We won't try to do anything clever in terms of upgrading or resolving or anything... exact match or go home.
                     let existing = oe.get();
-                    if &version != existing {
+                    if version != existing {
                         Err((Blame::Human,
                             format!("conflicting versions for dependency '{}': '{}', '{}'",
                                 name, existing, version)))?;
@@ -533,9 +532,10 @@ fn try_main() -> Result<i32> {
                 Some(i) => &d[..i],
                 None => &d[..]
             })
-            .map(|d| match d.contains('-') {
-                true => Cow::from(d.replace("-", "_")),
-                false => Cow::from(d)
+            .map(|d| if d.contains('-') {
+                Cow::from(d.replace("-", "_"))
+            } else {
+                Cow::from(d)
             })
             .map(|d| format!("#[macro_use] extern crate {};", d));
 
@@ -579,7 +579,7 @@ fn try_main() -> Result<i32> {
     if action.execute {
         fn hint<F: FnOnce(&mut Command) -> &mut Command>(f: F) -> F { f }
         let add_env = hint(move |cmd| {
-            cmd.env("CARGO_SCRIPT_SCRIPT_PATH", input.path().unwrap_or(Path::new("")));
+            cmd.env("CARGO_SCRIPT_SCRIPT_PATH", input.path().unwrap_or_else(|| Path::new("")));
             cmd.env("CARGO_SCRIPT_SAFE_NAME", input.safe_name());
             cmd.env("CARGO_SCRIPT_PKG_NAME", input.package_name());
             cmd.env("CARGO_SCRIPT_BASE_PATH", input.base_path());
@@ -781,7 +781,7 @@ fn gen_pkg_and_compile(
             }
         }
 
-        compile_err = get_status!(cmd).map_err(|e| Into::<MainError>::into(e))
+        compile_err = get_status!(cmd).map_err(Into::<MainError>::into)
             .and_then(|st|
                 match st.code() {
                     Some(0) => Ok(()),
@@ -979,13 +979,13 @@ fn decide_action_for(
                 => (None, None, None)
         };
         PackageMetadata {
-            path: path,
+            path,
             modified: mtime,
             template: template.map(Into::into),
-            debug: debug,
-            deps: deps,
-            prelude: prelude,
-            features: features,
+            debug,
+            deps,
+            prelude,
+            features,
             manifest_hash: hash_str(&mani_str),
             script_hash: hash_str(&script_str),
         }
@@ -998,14 +998,14 @@ fn decide_action_for(
         force_compile: force,
         emit_metadata: true,
         execute: !build_only,
-        pkg_path: pkg_path,
-        using_cache: using_cache,
+        pkg_path,
+        using_cache,
         use_bincache: use_bincache.unwrap_or(using_cache),
         metadata: input_meta,
         old_metadata: None,
         manifest: mani_str,
         script: script_str,
-        build_kind: build_kind,
+        build_kind,
     };
 
     macro_rules! bail {
@@ -1415,7 +1415,7 @@ where P: AsRef<Path> {
     let mut file = fs::File::create(path)?;
     write!(&mut file, "{}", content)?;
     file.flush()?;
-    Ok(FileOverwrite::Changed { new_hash: new_hash })
+    Ok(FileOverwrite::Changed { new_hash })
 }
 
 /**
@@ -1519,6 +1519,6 @@ fn cargo_target_by_message(input: &Input, manifest: &str, use_bincache: bool, me
 
     match child.wait()?.code() {
         Some(st) => Err(format!("could not determine target filename: cargo exited with status {}", st).into()),
-        None => Err(format!("could not determine target filename: cargo exited abnormally").into()),
+        None => Err("could not determine target filename: cargo exited abnormally".to_string().into()),
     }
 }

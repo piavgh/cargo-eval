@@ -15,8 +15,8 @@ pub enum MigrationKind {
 }
 
 impl MigrationKind {
-    pub fn for_real(&self) -> bool {
-        *self == MigrationKind::ForReal
+    pub fn for_real(self) -> bool {
+        self == MigrationKind::ForReal
     }
 }
 
@@ -40,9 +40,8 @@ mod inner_unix_or_windows {
             // Fuck it.
             return 0
         }
-        let now_ms_1970_utc = (now_1970_utc.sec as u64 * 1000)
-            + (now_1970_utc.nsec as u64 / 1_000_000);
-        now_ms_1970_utc
+        (now_1970_utc.sec as u64 * 1000)
+            + (now_1970_utc.nsec as u64 / 1_000_000)
     }
 }
 

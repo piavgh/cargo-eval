@@ -116,7 +116,7 @@ mod suppress_child_output {
         });
 
         Ok(ChildToken {
-            child: child,
+            child,
             done_sig: Some(done_sig),
             // stderr_join: stderr_join,
         })
@@ -136,7 +136,7 @@ mod suppress_child_output {
                     if let Some(done_sig) = self.done_sig.take() {
                         done_sig.send(false);
                     }
-                    return Err(e.into());
+                    return Err(e);
                 }
             };
             if let Some(done_sig) = self.done_sig.take() {
