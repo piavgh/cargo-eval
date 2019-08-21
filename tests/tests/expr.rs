@@ -28,18 +28,6 @@ fn test_expr_temporary() {
 
 #[test]
 fn test_expr_dep() {
-    let out = cargo_script!("-D", "boolinator=0.1.0",
-        "-e", with_output_marker!(
-            prelude "use boolinator::Boolinator;";
-            "true.as_some(1)"
-        )).unwrap();
-    scan!(out.stdout_output();
-        ("Some(1)") => ()
-    ).unwrap()
-}
-
-#[test]
-fn test_expr_dep_extern() {
     let out = cargo_script!("-d", "boolinator=0.1.0",
         "-e", with_output_marker!(
             prelude "use boolinator::Boolinator;";
@@ -47,13 +35,7 @@ fn test_expr_dep_extern() {
         )).unwrap();
     scan!(out.stdout_output();
         ("Some(1)") => ()
-    ).unwrap();
-
-    let out = cargo_script!("-e", with_output_marker!(
-        prelude "use boolinator::Boolinator;";
-        "true.as_some(1)"
-    )).unwrap();
-    assert!(!out.success());
+    ).unwrap()
 }
 
 #[test]

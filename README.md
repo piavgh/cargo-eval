@@ -181,8 +181,6 @@ The code given is embedded into a block expression, evaluated, and printed out u
 Useful command-line arguments:
 
 - `-d`/`--dep`: add a dependency to the generated `Cargo.toml` manifest.
-- `-x`/`--extern`: inject `extern crate` into generated script.
-- `-D`/`--dep-extern`: do both of the above.
 - `-t`/`--template`: Specify a custom template for this expression (see section on templates).
 
 <a name="filters"></a>

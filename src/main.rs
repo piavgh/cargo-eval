@@ -86,7 +86,6 @@ struct Args {
     clear_cache: bool,
     debug: bool,
     dep: Vec<String>,
-    dep_extern: Vec<String>,
     force: bool,
     unstable_features: Vec<String>,
     use_bincache: Option<bool>,
@@ -203,14 +202,6 @@ fn parse_args(args: &[String]) -> SubCommand {
                 .multiple(true)
                 .number_of_values(1)
                 .requires("script")
-            )
-            .arg(Arg::with_name("dep_extern")
-                .help("Like `dep`, except that it *also* adds a `#[macro_use] extern crate name;` item for expression and loop scripts.  Note that this only works if the name of the dependency and the name of the library it generates are exactly the same.")
-                .long("dep-extern")
-                .short("D")
-                .takes_value(true)
-                .multiple(true)
-                .requires("expr_or_loop")
             )
             .arg(Arg::with_name("features")
                  .help("Cargo features to pass when building and running.")
@@ -337,7 +328,6 @@ fn parse_args(args: &[String]) -> SubCommand {
         clear_cache: m.is_present("clear_cache"),
         debug: m.is_present("debug"),
         dep: owned_vec_string(m.values_of("dep")),
-        dep_extern: owned_vec_string(m.values_of("dep_extern")),
         force: m.is_present("force"),
         unstable_features: owned_vec_string(m.values_of("unstable_features")),
         use_bincache: yes_or_no(m.value_of("use_bincache")),
@@ -485,7 +475,7 @@ fn try_main() -> Result<i32> {
         use std::collections::hash_map::Entry::{Occupied, Vacant};
 
         let mut deps: HashMap<String, String> = HashMap::new();
-        for dep in args.dep.iter().chain(args.dep_extern.iter()).cloned() {
+        for dep in args.dep.iter().cloned() {
             // Append '=*' if it needs it.
             let dep = match dep.find('=') {
                 Some(_) => dep,
@@ -534,19 +524,8 @@ fn try_main() -> Result<i32> {
     let prelude_items = {
         let unstable_features = args.unstable_features.iter()
             .map(|uf| format!("#![feature({})]", uf));
-        let dep_externs = args.dep_extern.iter()
-            .map(|d| match d.find('=') {
-                Some(i) => &d[..i],
-                None => &d[..]
-            })
-            .map(|d| if d.contains('-') {
-                Cow::from(d.replace("-", "_"))
-            } else {
-                Cow::from(d)
-            })
-            .map(|d| format!("#[macro_use] extern crate {};", d));
 
-        let mut items: Vec<_> = unstable_features.chain(dep_externs).collect();
+        let mut items: Vec<_> = unstable_features.collect();
         items.sort();
         items
     };
