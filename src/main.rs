@@ -35,22 +35,17 @@ Length of time to suppress Cargo output.
 #[cfg(feature="suppress-cargo-output")]
 const CARGO_OUTPUT_TIMEOUT: u64 = 2_000/*ms*/;
 
-const SUBCOMMAND: &str = "eval";
-
 mod consts;
 mod error;
 mod manifest;
 mod platform;
 mod templates;
 mod util;
+mod app;
 
 #[cfg(windows)]
 mod file_assoc;
 
-#[cfg(not(windows))]
-mod file_assoc {}
-
-use std::borrow::Cow;
 use std::error::Error;
 use std::ffi::OsString;
 use std::fs;
@@ -60,7 +55,7 @@ use std::process::{self, Command};
 
 use crate::error::{Blame, MainError, Result};
 use crate::platform::MigrationKind;
-use crate::util::{ChainMap, Defer};
+use crate::util::{Defer};
 
 #[derive(Debug)]
 enum SubCommand {
@@ -127,160 +122,8 @@ impl BuildKind {
     }
 }
 
-fn parse_args(args: &[String]) -> SubCommand {
-    use clap::{App, Arg, ArgGroup, SubCommand, AppSettings};
-    let version = env!("CARGO_PKG_VERSION");
-    let about = "Compiles and runs “Cargoified Rust scripts”.";
-
-    // We have to kinda lie about who we are for the output to look right...
-    let m = App::new("cargo")
-        .bin_name("cargo")
-        .version(version)
-        .about(about)
-        .setting(AppSettings::SubcommandRequiredElseHelp)
-        .subcommand(SubCommand::with_name(SUBCOMMAND)
-            .version(version)
-            .about(about)
-            .usage("cargo eval [FLAGS OPTIONS] [--] <script> <args>...")
-
-            .subcommand(templates::Args::subcommand())
-            .chain_map(|app| {
-              #[cfg(windows)] {
-                app.subcommand(file_assoc::Args::subcommand())
-              }
-              #[cfg(not(windows))] {
-                app
-              }
-            })
-
-            /*
-            Major script modes.
-            */
-            .arg(Arg::with_name("script")
-                .help("Script file (with or without extension) to execute.")
-                .index(1)
-            )
-            .arg(Arg::with_name("args")
-                .help("Additional arguments passed to the script.")
-                .index(2)
-                .multiple(true)
-            )
-            .arg(Arg::with_name("expr")
-                .help("Execute <script> as a literal expression and display the result.")
-                .long("expr")
-                .short("e")
-                .requires("script")
-            )
-            .arg(Arg::with_name("loop")
-                .help("Execute <script> as a literal closure once for each line from stdin.")
-                .long("loop")
-                .short("l")
-                .requires("script")
-            )
-            .group(ArgGroup::with_name("expr_or_loop")
-                .args(&["expr", "loop"])
-            )
-
-            /*
-            Options that impact the script being executed.
-            */
-            .arg(Arg::with_name("count")
-                .help("Invoke the loop closure with two arguments: line, and line number.")
-                .long("count")
-                .requires("loop")
-            )
-            .arg(Arg::with_name("debug")
-                .help("Build a debug executable, not an optimised one.")
-                .long("debug")
-                .requires("script")
-            )
-            .arg(Arg::with_name("dep")
-                .help("Add an additional Cargo dependency.  Each SPEC can be either just the package name (which will assume the latest version) or a full `name=version` spec.")
-                .long("dep")
-                .short("d")
-                .takes_value(true)
-                .multiple(true)
-                .number_of_values(1)
-                .requires("script")
-            )
-            .arg(Arg::with_name("features")
-                 .help("Cargo features to pass when building and running.")
-                 .long("features")
-                 .takes_value(true)
-            )
-            .arg(Arg::with_name("unstable_features")
-                .help("Add a #![feature] declaration to the crate.")
-                .long("unstable-feature")
-                .short("u")
-                .takes_value(true)
-                .multiple(true)
-                .requires("expr_or_loop")
-            )
-
-            /*
-            Options that change how cargo eval itself behaves, and don't alter what the script will do.
-            */
-            .arg(Arg::with_name("build_only")
-                .help("Build the script, but don't run it.")
-                .long("build-only")
-                .requires("script")
-                .conflicts_with_all(&["args"])
-            )
-            .arg(Arg::with_name("clear_cache")
-                .help("Clears out the script cache.")
-                .long("clear-cache")
-            )
-            .arg(Arg::with_name("force")
-                .help("Force the script to be rebuilt.")
-                .long("force")
-                .requires("script")
-            )
-            .arg(Arg::with_name("gen_pkg_only")
-                .help("Generate the Cargo package, but don't compile or run it.")
-                .long("gen-pkg-only")
-                .requires("script")
-                .conflicts_with_all(&["args", "build_only", "debug", "force", "test", "bench"])
-            )
-            .arg(Arg::with_name("pkg_path")
-                .help("Specify where to place the generated Cargo package.")
-                .long("pkg-path")
-                .takes_value(true)
-                .requires("script")
-                .conflicts_with_all(&["clear_cache", "force"])
-            )
-            .arg(Arg::with_name("use_bincache")
-                .help("Override whether or not the shared binary cache will be used for compilation.")
-                .long("use-shared-binary-cache")
-                .takes_value(true)
-                .possible_values(&["no", "yes"])
-            )
-            .arg(Arg::with_name("migrate_data")
-                .help("Migrate data from older versions.")
-                .long("migrate-data")
-                .takes_value(true)
-                .possible_values(&["dry-run", "for-real"])
-            )
-            .arg(Arg::with_name("test")
-                .help("Compile and run tests.")
-                .long("test")
-                .conflicts_with_all(&["bench", "debug", "args", "force"])
-            )
-            .arg(Arg::with_name("bench")
-                .help("Compile and run benchmarks.  Requires a nightly toolchain.")
-                .long("bench")
-                .conflicts_with_all(&["test", "debug", "args", "force"])
-            )
-            .arg(Arg::with_name("template")
-                .help("Specify a template to use for expression scripts.")
-                .long("template")
-                .short("t")
-                .takes_value(true)
-                .requires("expr")
-            )
-        )
-        .get_matches_from(args);
-
-    let m = m.subcommand_matches(SUBCOMMAND).unwrap();
+fn parse_args() -> SubCommand {
+    let m = app::get_matches();
 
     if let Some(m) = m.subcommand_matches("templates") {
         return self::SubCommand::Templates(templates::Args::parse(m));
@@ -359,14 +202,7 @@ fn main() {
 }
 
 fn try_main() -> Result<i32> {
-    let mut args = std::env::args().collect::<Vec<String>>();
-
-    // Insert `eval` argument if called as `cargo-eval`.
-    if args.get(1).map(|s| s == SUBCOMMAND) != Some(true) {
-      args.insert(1, SUBCOMMAND.to_string());
-    }
-
-    let args = parse_args(&args);
+    let args = parse_args();
     info!("Arguments: {:?}", args);
 
     let args = match args {
@@ -576,10 +412,10 @@ fn try_main() -> Result<i32> {
             let exe_path = get_exe_path(action.build_kind, &action.pkg_path)?;
             info!("executing {:?}", exe_path);
             match {
-                Command::new(exe_path)
-                    .args(&args.args)
-                    .chain_map(add_env)
-                    .status()
+                let mut cmd = Command::new(exe_path);
+                cmd.args(&args.args);
+                add_env(&mut cmd);
+                cmd.status()
                     .map(|st| st.code().unwrap_or(1))
             }? {
                 0 => (),
