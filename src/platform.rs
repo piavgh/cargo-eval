@@ -1,20 +1,12 @@
-/*!
-This module is for platform-specific stuff.
-*/
-
-pub use self::inner::{
-    get_cache_dir, get_config_dir,
-    write_path, read_path,
-    force_cargo_color,
-};
-
-
-use std::fs;
-
+use std::fs::File;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub use self::inner::*;
+
+use crate::error::MainError;
+
 // Last-modified time of a file, in milliseconds since the UNIX epoch.
-pub fn file_last_modified(file: &fs::File) -> u128 {
+pub fn file_last_modified(file: &File) -> u128 {
   file.metadata().and_then(|md| md.modified().map(|t| t.duration_since(UNIX_EPOCH).unwrap().as_millis())).unwrap_or(0)
 }
 
@@ -26,14 +18,12 @@ pub fn current_time() -> u128 {
 
 #[cfg(unix)]
 mod inner {
-    extern crate atty;
-
     pub use super::*;
 
     use std::path::{Path, PathBuf};
     use std::{env, io};
     use std::os::unix::ffi::OsStrExt;
-    use crate::error::{MainError, Blame};
+    use crate::error::Blame;
 
     /**
     Get a directory suitable for storing user- and machine-specific data which may or may not be persisted across sessions.
@@ -41,19 +31,7 @@ mod inner {
     This is chosen to match the location where Cargo places its cache data.
     */
     pub fn get_cache_dir() -> Result<PathBuf, MainError> {
-        // try $CARGO_HOME then fall back to $HOME
         if let Some(home) = env::var_os("CARGO_HOME") {
-            let home = Path::new(&home);
-            let old_home = home.join(".cargo");
-            if old_home.exists() {
-                // Keep using the old directory in preference to the new one, but only if it still contains `script-cache` and/or `binary-cache`.
-                if old_home.join("script-cache").exists() || old_home.join("binary-cache").exists() {
-                    // Yup; use this one.
-                    return Ok(old_home);
-                }
-            }
-
-            // Just use `$CARGO_HOME` directly.
             return Ok(home.into());
         }
 
@@ -104,12 +82,10 @@ pub mod inner {
     pub use super::*;
 
     use std::ffi::OsString;
-    use std::fs;
     use std::io;
     use std::path::{Path, PathBuf};
     use std::mem;
     use std::os::windows::ffi::{OsStrExt, OsStringExt};
-    use crate::error::MainError;
 
     use winapi::{
       shared::{
