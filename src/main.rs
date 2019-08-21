@@ -357,10 +357,10 @@ fn try_main() -> Result<i32> {
     if action.execute {
         fn hint<F: FnOnce(&mut Command) -> &mut Command>(f: F) -> F { f }
         let add_env = hint(move |cmd| {
-            cmd.env("CARGO_SCRIPT_SCRIPT_PATH", input.path().unwrap_or_else(|| Path::new("")));
-            cmd.env("CARGO_SCRIPT_SAFE_NAME", input.safe_name());
-            cmd.env("CARGO_SCRIPT_PKG_NAME", input.package_name());
-            cmd.env("CARGO_SCRIPT_BASE_PATH", input.base_path());
+            cmd.env("CARGO_EVAL_SCRIPT_PATH", input.path().unwrap_or_else(|| Path::new("")));
+            cmd.env("CARGO_EVAL_SAFE_NAME", input.safe_name());
+            cmd.env("CARGO_EVAL_PKG_NAME", input.package_name());
+            cmd.env("CARGO_EVAL_BASE_PATH", input.base_path());
             cmd
         });
 

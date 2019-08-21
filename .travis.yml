@@ -22,30 +22,36 @@ jobs:
   include:
     - stage: test
       name: debug
-      script: cargo test --all --all-features
+      script: &debug
+        - cargo test --all --all-features
       rust: stable
       os: linux
     - stage: test
       name: release
-      script: cargo test --all --all-features --release
+      script: &release
+        - cargo test --all --all-features --release
     - stage: test
       name: debug
-      script: cargo test --all --all-features
+      script:
+        <<: *debug
       rust: stable
       os: osx
     - stage: test
       name: release
-      script: cargo test --all --all-features --release
+      script:
+        <<: *release
       rust: stable
       os: osx
     - stage: test
       name: debug
-      script: cargo test --all --all-features
+      script:
+        <<: *debug
       rust: stable
       os: windows
     - stage: test
       name: release
-      script: cargo test --all --all-features --release
+      script:
+        <<: *release
       rust: stable
       os: windows
     - stage: clippy

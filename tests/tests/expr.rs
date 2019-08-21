@@ -57,7 +57,7 @@ fn test_expr_qmark() {
 fn test_expr_template() {
     let template_dir = "tests/data/templates";
     let out = cargo_eval!(
-        #[env(CARGO_SCRIPT_DEBUG_TEMPLATE_PATH=template_dir)]
+        #[env(CARGO_EVAL_TEMPLATE_DIR=template_dir)]
         "-t", "shout", "-e", with_output_marker!(r#""no way? no way!""#)
     ).unwrap();
     scan!(out.stdout_output();
@@ -69,7 +69,7 @@ fn test_expr_template() {
 fn test_expr_template_with_deps() {
     let template_dir = "tests/data/templates";
     let out = cargo_eval!(
-        #[env(CARGO_SCRIPT_DEBUG_TEMPLATE_PATH=template_dir)]
+        #[env(CARGO_EVAL_TEMPLATE_DIR=template_dir)]
         "-t", "boolinate", "-e", with_output_marker!(r#"true"#)
     ).unwrap();
     scan!(out.stdout_output();
@@ -81,7 +81,7 @@ fn test_expr_template_with_deps() {
 fn test_expr_template_override_expr() {
     let template_dir = "tests/data/templates/override";
     let out = cargo_eval!(
-        #[env(CARGO_SCRIPT_DEBUG_TEMPLATE_PATH=template_dir)]
+        #[env(CARGO_EVAL_TEMPLATE_DIR=template_dir)]
         "-e", with_output_marker!(r#"true"#)
     ).unwrap();
     scan!(out.stdout_output();

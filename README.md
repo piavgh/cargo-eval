@@ -211,13 +211,13 @@ Note that, like with expressions, you can specify a custom template for stream f
 
 The following environment variables are provided to scripts by `cargo-eval`:
 
-- `CARGO_SCRIPT_BASE_PATH`: the base path used by `cargo-eval` to resolve relative dependency paths.  Note that this is *not* necessarily the same as either the working directory, or the directory in which the script is being compiled.
+- `CARGO_EVAL_BASE_PATH`: the base path used by `cargo-eval` to resolve relative dependency paths.  Note that this is *not* necessarily the same as either the working directory, or the directory in which the script is being compiled.
 
-- `CARGO_SCRIPT_PKG_NAME`: the generated package name of the script.
+- `CARGO_EVAL_PKG_NAME`: the generated package name of the script.
 
-- `CARGO_SCRIPT_SAFE_NAME`: the file name of the script (sans file extension) being run.  For scripts, this is derived from the script's filename.  May also be `"expr"` or `"loop"` for those invocations.
+- `CARGO_EVAL_SAFE_NAME`: the file name of the script (sans file extension) being run.  For scripts, this is derived from the script's filename.  May also be `"expr"` or `"loop"` for those invocations.
 
-- `CARGO_SCRIPT_SCRIPT_PATH`: absolute path to the script being run, assuming one exists.  Set to the empty string for expressions.
+- `CARGO_EVAL_SCRIPT_PATH`: absolute path to the script being run, assuming one exists.  Set to the empty string for expressions.
 
 <a name="templates"></a>
 ### Templates

@@ -117,11 +117,10 @@ pub fn expand(src: &str, subs: &HashMap<&str, &str>) -> Result<String> {
 Returns the path to the template directory.
 */
 pub fn get_template_path() -> PathBuf {
-  #[cfg(debug_assertions)] {
-    use std::env;
-    if let Ok(path) = env::var("CARGO_SCRIPT_DEBUG_TEMPLATE_PATH") {
-        return path.into();
-    }
+  use std::env;
+
+  if let Ok(path) = env::var("CARGO_EVAL_TEMPLATE_DIR") {
+    return path.into();
   }
 
   app::config_dir().unwrap().join("templates")
