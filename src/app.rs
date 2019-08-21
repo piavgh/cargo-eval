@@ -18,8 +18,8 @@ fn subcommand_name() -> &'static str {
   &name()[6..]
 }
 
-pub fn config_dir() -> Option<PathBuf> {
-  Some(dirs::config_dir()?.join(name()))
+pub fn data_dir() -> Option<PathBuf> {
+  Some(dirs::data_local_dir()?.join(name()))
 }
 
 pub fn cache_dir() -> Option<PathBuf> {

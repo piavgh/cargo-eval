@@ -123,7 +123,7 @@ pub fn get_template_path() -> PathBuf {
     return path.into();
   }
 
-  app::config_dir().unwrap().join("templates")
+  app::data_dir().unwrap().join("templates")
 }
 
 /**
