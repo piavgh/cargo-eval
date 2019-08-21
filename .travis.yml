@@ -2,69 +2,35 @@ language: rust
 
 cache: cargo
 
+env:
+  - RUSTFLAGS='-D warnings'
+
+rust:
+  - 1.33.0
+  - stable
+  - nightly
+
+os:
+  - linux
+  - osx
+  - windows
+
 matrix:
-  include:
-    - rust: 1.33.0
-      os: linux
-    - rust: stable
-      os: linux
-      env: CRATES_IO_PUBLISH=true
-    - rust: stable
-      os: osx
-    - rust: stable
-      os: windows
+  allowed_failures:
     - rust: nightly
-      os: linux
-  allow_failures:
-    - rust: nightly
+
+script:
+  - rustup component add clippy
+  - cargo test --all --all-features
+  - cargo test --all --all-features --release
+  - cargo clippy
 
 jobs:
   include:
-    - stage: test
-      name: debug
-      script: &debug
-        - cargo test --all --all-features
-      rust: stable
-      os: linux
-    - stage: test
-      name: release
-      script: &release
-        - cargo test --all --all-features --release
-    - stage: test
-      name: debug
-      script:
-        <<: *debug
-      rust: stable
-      os: osx
-    - stage: test
-      name: release
-      script:
-        <<: *release
-      rust: stable
-      os: osx
-    - stage: test
-      name: debug
-      script:
-        <<: *debug
-      rust: stable
-      os: windows
-    - stage: test
-      name: release
-      script:
-        <<: *release
-      rust: stable
-      os: windows
-    - stage: clippy
-      name: install clippy
-      script: rustup component add clippy
-      if: env(TRAVIS_RUST_VERSION) != nightly
-    - stage: clippy
-      name: clippy
-      script: cargo clippy
-      if: env(TRAVIS_RUST_VERSION) != nightly
     - stage: publish
       script: cargo publish --token "${CRATES_IO_TOKEN}"
-      if: env(CRATES_IO_PUBLISH) = true AND (tag =~ ^v) AND (branch = master)
+      rust: stable
+      if: (tag =~ ^v) AND (branch = master)
 
 notifications:
   email:
