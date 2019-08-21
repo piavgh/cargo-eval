@@ -17,7 +17,6 @@ Some of `cargo-eval`'s features include:
 Table of contents:
 
 - [Installation](#installation)
-  - [Migrating From Previous Versions](#migrating)
   - [Features](#features)
   - [Manually Compiling and Installing](#compiling)
   - [Self-Executing Scripts](#hashbang)
@@ -45,13 +44,6 @@ If you have already installed `cargo-eval`, you can update to the latest version
 ```sh
 cargo install --force cargo-eval
 ```
-
-<a name="migrating"></a>
-### Migrating From Previous Versions
-
-`cargo-eval` supports migrating data from previous versions.  This is not mandatory, but may be preferred.  Using `cargo eval --migrate-data dry-run` will perform a "dry run", informing you of any applicable migrations.  Using the `for-real` option will actually perform the migration.  The following migrations may be applicable:
-
-- 0.1 → 0.2: On non-Windows platforms, and when `CARGO_HOME` is defined, moves the location for cached data from `$CARGO_HOME/.cargo` to `$CARGO_HOME`.
 
 <a name="features"></a>
 ### Cargo Features
