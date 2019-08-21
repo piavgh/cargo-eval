@@ -128,7 +128,7 @@ impl BuildKind {
     }
 }
 
-fn parse_args() -> SubCommand {
+fn parse_args(args: &[String]) -> SubCommand {
     use clap::{App, Arg, ArgGroup, SubCommand, AppSettings};
     let version = env!("CARGO_PKG_VERSION");
     let about = "Compiles and runs “Cargoified Rust scripts”.";
@@ -143,6 +143,16 @@ fn parse_args() -> SubCommand {
             .version(version)
             .about(about)
             .usage("cargo eval [FLAGS OPTIONS] [--] <script> <args>...")
+
+            .subcommand(templates::Args::subcommand())
+            .chain_map(|app| {
+              #[cfg(windows)] {
+                app.subcommand(file_assoc::Args::subcommand())
+              }
+              #[cfg(not(windows))] {
+                app
+              }
+            })
 
             /*
             Major script modes.
@@ -277,16 +287,9 @@ fn parse_args() -> SubCommand {
                 .requires("expr")
             )
         )
-        .subcommand(templates::Args::subcommand())
-        .chain_map(|app| {
-          #[cfg(windows)] {
-            app.subcommand(file_assoc::Args::subcommand())
-          }
-          #[cfg(not(windows))] {
-            app
-          }
-        })
-        .get_matches();
+        .get_matches_from(args);
+
+    let m = m.subcommand_matches(SUBCOMMAND).unwrap();
 
     if let Some(m) = m.subcommand_matches("templates") {
         return self::SubCommand::Templates(templates::Args::parse(m));
@@ -297,8 +300,6 @@ fn parse_args() -> SubCommand {
             return self::SubCommand::FileAssoc(file_assoc::Args::parse(m));
         }
     }
-
-    let m = m.subcommand_matches(SUBCOMMAND).unwrap();
 
     fn owned_vec_string<'a, I>(v: Option<I>) -> Vec<String>
     where I: ::std::iter::Iterator<Item=&'a str> {
@@ -368,7 +369,14 @@ fn main() {
 }
 
 fn try_main() -> Result<i32> {
-    let args = parse_args();
+    let mut args = std::env::args().collect::<Vec<String>>();
+
+    // Insert `eval` argument if called as `cargo-eval`.
+    if args.get(1).map(|s| s == SUBCOMMAND) != Some(true) {
+      args.insert(1, SUBCOMMAND.to_string());
+    }
+
+    let args = parse_args(&args);
     info!("Arguments: {:?}", args);
 
     let args = match args {
@@ -436,7 +444,7 @@ fn try_main() -> Result<i32> {
 
     let input = match (args.script, args.expr, args.loop_) {
         (Some(script), false, false) => {
-            let (path, mut file) = find_script(script).ok_or("could not find script")?;
+            let (path, mut file) = find_script(&script).ok_or(format!("could not find script '{}'", script))?;
 
             script_name = path.file_stem()
                 .map(|os| os.to_string_lossy().into_owned())

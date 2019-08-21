@@ -65,18 +65,16 @@ The following features are defined:
 
 `cargo-eval` requires Rust 1.11 or higher to build.  Rust 1.4+ was supported prior to version 0.2.
 
-Once built, you should place the resulting executable somewhere on your `PATH`.  At that point, you should be able to invoke it by using `cargo eval`.  Note that you *can* run the executable directly, but the first argument will *need* to be `eval`.
-
-If you want to run `cargo eval` from a hashbang on UNIX, or via file associations on Windows, you should also install the `run-cargo-eval` program somewhere on `PATH`.
+Once built, you should place the resulting executable somewhere on your `PATH`.  At that point, you should be able to invoke it by using `cargo eval`.
 
 <a name="hashbang"></a>
 ### Self-Executing Scripts
 
-On UNIX systems, you can use `#!/usr/bin/env run-cargo-eval` as a hashbang line in a Rust script.  If the script file is executable, this will allow you to execute a script file directly.
+On UNIX systems, you can use `#!/usr/bin/env cargo eval --` as a hashbang line in a Rust script.  If the script file is executable, this will allow you to execute a script file directly.
 
-If you are using Windows, you can associate the `.crs` extension (which is simply a renamed `.rs` file) with `run-cargo-eval`.  This allows you to execute Rust scripts simply by naming them like any other executable or script.
+If you are using Windows, you can associate the `.crs` extension (which is simply a renamed `.rs` file) with `cargo-eval`.  This allows you to execute Rust scripts simply by naming them like any other executable or script.
 
-This can be done using the `cargo-eval file-association` command (note the hyphen in `cargo-eval`).  This command can also remove the file association.  If you pass `--amend-pathext` to the `file-assocation install` command, it will also allow you to execute `.crs` scripts *without* having to specify the file extension, in the same way that `.exe` and `.bat` files can be used.
+This can be done using the `cargo eval file-association` command.  This command can also remove the file association.  If you pass `--amend-pathext` to the `file-assocation install` command, it will also allow you to execute `.crs` scripts *without* having to specify the file extension, in the same way that `.exe` and `.bat` files can be used.
 
 If you want to make a script usable across platforms, it is recommended that you use *both* a hashbang line *and* give the file a `.crs` file extension.
 
@@ -105,7 +103,7 @@ The output of Cargo will be hidden unless compilation fails, or takes longer tha
 - `now.crs` (code block manifest with UNIX hashbang and `.crs` extension):
 
     ```rust
-    #!/usr/bin/env run-cargo-eval
+    #!/usr/bin/env cargo eval --
     //! This is a regular crate doc comment, but it also contains a partial
     //! Cargo manifest.  Note the use of a *fenced* code block, and the
     //! `cargo` "language".
@@ -234,7 +232,7 @@ The following environment variables are provided to scripts by `cargo-eval`:
 <a name="templates"></a>
 ### Templates
 
-You can use templates to avoid having to re-specify common code and dependencies.  You can view a list of your templates by running `cargo-eval templates list` (note the hyphen), or show the folder in which they should be stored by running `cargo-eval templates show`.  You can dump the contents of a template using `cargo-eval templates dump NAME`.
+You can use templates to avoid having to re-specify common code and dependencies.  You can view a list of your templates by running `cargo eval templates list`, or show the folder in which they should be stored by running `cargo eval templates show`.  You can dump the contents of a template using `cargo-eval templates dump NAME`.
 
 Templates are Rust source files with two placeholders: `#{prelude}` for the auto-generated prelude (which should be placed at the top of the template), and `#{script}` for the contents of the script itself.
 

@@ -60,20 +60,15 @@ fn install(amend_pathext: bool) -> Result<()> {
     use std::env;
 
     // Set up file association.
-    let cs_path = env::current_exe()?;
-    let cs_path = cs_path.canonicalize()?;
-    let rcs_path = cs_path.with_file_name("run-cargo-eval.exe");
-
-    if !rcs_path.exists() {
-        return Err((Blame::Human, format!("{:?} not found", rcs_path)).into());
-    }
+    let cargo_eval_path = env::current_exe()?;
+    let cargo_eval_path = cargo_eval_path.canonicalize()?;
 
     // We have to remove the `\\?\` prefix because, if we don't, the shell freaks out.
-    let rcs_path = rcs_path.to_string_lossy();
-    let rcs_path = if rcs_path.starts_with(r#"\\?\"#) {
-        &rcs_path[4..]
+    let cargo_eval_path = cargo_eval_path.to_string_lossy();
+    let cargo_eval_path = if cargo_eval_path.starts_with(r#"\\?\"#) {
+        &cargo_eval_path[4..]
     } else {
-        &rcs_path[..]
+        &cargo_eval_path[..]
     };
 
     let res = (|| -> io::Result<()> {
@@ -81,11 +76,11 @@ fn install(amend_pathext: bool) -> Result<()> {
         let (dot_crs, _) = hlcr.create_subkey(".crs")?;
         dot_crs.set_value("", &"CargoScript.Crs")?;
 
-        let (cs_crs, _) = hlcr.create_subkey("CargoScript.Crs")?;
-        cs_crs.set_value("", &"Cargo Script")?;
+        let (cargo_eval_crs, _) = hlcr.create_subkey("CargoScript.Crs")?;
+        cargo_eval_crs.set_value("", &"Cargo Script")?;
 
-        let (sh_o_c, _) = cs_crs.create_subkey(r#"shell\open\command"#)?;
-        sh_o_c.set_value("", &format!(r#""{}" "%1" %*"#, rcs_path))?;
+        let (sh_o_c, _) = cargo_eval_crs.create_subkey(r#"shell\open\command"#)?;
+        sh_o_c.set_value("", &format!(r#""{}" "--" "%1" %*"#, cargo_eval_path))?;
         Ok(())
     })();
 
@@ -101,8 +96,8 @@ fn install(amend_pathext: bool) -> Result<()> {
         }
     }
 
-    println!("Created run-cargo-eval registry entry.");
-    println!("- Handler set to: {}", rcs_path);
+    println!("Created cargo-eval registry entry.");
+    println!("- Handler set to: {}", cargo_eval_path);
 
     // Amend PATHEXT.
     if amend_pathext {
@@ -136,7 +131,7 @@ fn uninstall() -> Result<()> {
     if ignored_missing {
         println!("Ignored some missing registry entries.");
     }
-    println!("Deleted run-cargo-eval registry entry.");
+    println!("Deleted cargo-eval registry entry.");
 
     {
         let hklm = RegKey::predef(wre::HKEY_LOCAL_MACHINE);
