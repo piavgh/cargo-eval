@@ -38,6 +38,7 @@ fn app() -> App<'static, 'static> {
     .arg(Arg::with_name("script")
         .help("Script file (with or without extension) to execute.")
         .index(1)
+        .required_unless("clear_cache")
     )
     .arg(Arg::with_name("args")
         .help("Additional arguments passed to the script.")

@@ -2,18 +2,6 @@
 This module just contains any big string literals I don't want cluttering up the rest of the code.
 */
 
-/**
-The message output when the user invokes `cargo eval` with no further arguments.  We need to do this ourselves because `clap` doesn't provide any way to generate this message manually.
-*/
-pub const NO_ARGS_MESSAGE: &str = "\
-The following required arguments were not supplied:
-\t'<script>'
-
-USAGE:
-\tcargo eval [FLAGS OPTIONS] [--] <script> <args>...
-
-For more information try --help";
-
 /*
 What follows are the templates used to wrap script input.
 */

@@ -213,7 +213,7 @@ fn try_main() -> Result<i32> {
         // If we *did not* get a `<script>` argument, that's OK.
         if args.script.is_none() {
             // Just let the user know that we did *actually* run.
-            println!("cargo eval cache cleared.");
+            println!("`cargo eval` cache cleared.");
             return Ok(0);
         }
     }
@@ -251,8 +251,7 @@ fn try_main() -> Result<i32> {
             content = loop_.into();
             Input::Loop(&content, args.count)
         },
-        (None, _, _) => return Err((Blame::Human, consts::NO_ARGS_MESSAGE).into()),
-        _ => return Err((Blame::Human, "cannot specify both --expr and --loop").into()),
+        _ => unreachable!(),
     };
     info!("input: {:?}", input);
 
