@@ -797,7 +797,7 @@ fn extract_comment(s: &str) -> Result<String> {
             // Detect and strip margin.
             margin = margin
                 .or_else(|| margin_re.find(line)
-                    .and_then(|m| Some(m.as_str())));
+                    .map(|m| m.as_str()));
 
             let line = if let Some(margin) = margin {
                 let end = line.char_indices().take(margin.len())

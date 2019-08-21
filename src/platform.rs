@@ -54,22 +54,7 @@ pub mod inner {
     use std::ffi::OsString;
     use std::io;
     use std::path::{Path, PathBuf};
-    use std::mem;
     use std::os::windows::ffi::{OsStrExt, OsStringExt};
-
-    use winapi::{
-      shared::{
-        minwindef::DWORD,
-        ntdef::{HANDLE, PWSTR},
-        winerror::{HRESULT, S_OK},
-      },
-      um::{
-        combaseapi::CoTaskMemFree,
-        shlobj::SHGetKnownFolderPath,
-        shtypes::KNOWNFOLDERID,
-        knownfolders::{FOLDERID_LocalAppData, FOLDERID_RoamingAppData},
-      },
-    };
 
     pub fn write_path<W>(w: &mut W, path: &Path) -> io::Result<()>
     where W: io::Write {
@@ -90,10 +75,10 @@ pub mod inner {
         let mut it = buf.iter().cloned();
         while let Some(lo) = it.next() {
             let hi = it.next().unwrap();
-            words.push(lo as u16 | ((hi as u16) << 8));
+            words.push(u16::from(lo) | (u16::from(hi) << 8));
         }
 
-        return Ok(OsString::from_wide(&words).into())
+        Ok(OsString::from_wide(&words).into())
     }
 
     /**

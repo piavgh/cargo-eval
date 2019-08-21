@@ -224,9 +224,10 @@ fn try_main() -> Result<i32> {
     let script_path: PathBuf;
     let content: String;
 
-    let input = match (args.script, args.expr, args.loop_) {
+    let input = match (&args.script, args.expr, args.loop_) {
         (Some(script), false, false) => {
-            let (path, mut file) = find_script(&script).ok_or(format!("could not find script '{}'", script))?;
+            let (path, mut file) = find_script(&script)
+              .ok_or_else(|| format!("could not find script '{}'", script))?;
 
             script_name = path.file_stem()
                 .map(|os| os.to_string_lossy().into_owned())
@@ -243,15 +244,15 @@ fn try_main() -> Result<i32> {
             Input::File(&script_name, &script_path, &content, mtime)
         },
         (Some(expr), true, false) => {
-            content = expr;
+            content = expr.into();
             Input::Expr(&content, args.template.as_ref().map(|s| &**s))
         },
         (Some(loop_), false, true) => {
-            content = loop_;
+            content = loop_.into();
             Input::Loop(&content, args.count)
         },
-        (None, _, _) => Err((Blame::Human, consts::NO_ARGS_MESSAGE))?,
-        _ => Err((Blame::Human, "cannot specify both --expr and --loop"))?,
+        (None, _, _) => return Err((Blame::Human, consts::NO_ARGS_MESSAGE).into()),
+        _ => return Err((Blame::Human, "cannot specify both --expr and --loop").into()),
     };
     info!("input: {:?}", input);
 
@@ -280,11 +281,11 @@ fn try_main() -> Result<i32> {
             assert!(parts.next().is_none(), "dependency somehow has three parts?!");
 
             if name == "" {
-                Err((Blame::Human, "cannot have empty dependency package name"))?;
+                return Err((Blame::Human, "cannot have empty dependency package name").into());
             }
 
             if version == "" {
-                Err((Blame::Human, "cannot have empty dependency version"))?;
+                return Err((Blame::Human, "cannot have empty dependency version").into());
             }
 
             match deps.entry(name.into()) {
@@ -295,9 +296,9 @@ fn try_main() -> Result<i32> {
                     // This is *only* a problem if the versions don't match.  We won't try to do anything clever in terms of upgrading or resolving or anything... exact match or go home.
                     let existing = oe.get();
                     if version != existing {
-                        Err((Blame::Human,
+                        return Err((Blame::Human,
                             format!("conflicting versions for dependency '{}': '{}', '{}'",
-                                name, existing, version)))?;
+                                name, existing, version)).into());
                     }
                 }
             }
@@ -328,14 +329,7 @@ fn try_main() -> Result<i32> {
         &input,
         deps,
         prelude_items,
-        args.debug,
-        args.pkg_path,
-        args.gen_pkg_only,
-        args.build_only,
-        args.force,
-        args.features,
-        args.use_bincache,
-        args.build_kind,
+        &args,
     )?;
     info!("action: {:?}", action);
 
@@ -704,16 +698,9 @@ fn decide_action_for(
     input: &Input,
     deps: Vec<(String, String)>,
     prelude: Vec<String>,
-    debug: bool,
-    pkg_path: Option<String>,
-    gen_pkg_only: bool,
-    build_only: bool,
-    force: bool,
-    features: Option<String>,
-    use_bincache: Option<bool>,
-    build_kind: BuildKind,
+    args: &Args,
 ) -> Result<InputAction> {
-    let (pkg_path, using_cache) = pkg_path.map(|p| (p.into(), false))
+    let (pkg_path, using_cache) = args.pkg_path.as_ref().map(|p| (p.into(), false))
         .unwrap_or_else(|| {
             // This can't fail.  Seriously, we're *fucked* if we can't work this out.
             let cache_path = script_cache_path();
@@ -737,8 +724,8 @@ fn decide_action_for(
     let (mani_str, script_str) = manifest::split_input(input, &deps, &prelude)?;
 
     // Forcibly override some flags based on build kind.
-    let (debug, force, build_only) = match build_kind {
-        BuildKind::Normal => (debug, force, build_only),
+    let (debug, force, build_only) = match args.build_kind {
+        BuildKind::Normal => (args.debug, args.force, args.build_only),
         BuildKind::Test => (true, false, false),
         BuildKind::Bench => (false, false, false),
     };
@@ -760,7 +747,7 @@ fn decide_action_for(
             debug,
             deps,
             prelude,
-            features,
+            features: args.features.clone(),
             manifest_hash: hash_str(&mani_str),
             script_hash: hash_str(&script_str),
         }
@@ -775,12 +762,12 @@ fn decide_action_for(
         execute: !build_only,
         pkg_path,
         using_cache,
-        use_bincache: use_bincache.unwrap_or(using_cache),
+        use_bincache: args.use_bincache.unwrap_or(using_cache),
         metadata: input_meta,
         old_metadata: None,
         manifest: mani_str,
         script: script_str,
-        build_kind,
+        build_kind: args.build_kind,
     };
 
     macro_rules! bail {
@@ -793,7 +780,7 @@ fn decide_action_for(
     }
 
     // If we were told to only generate the package, we need to stop *now*
-    if gen_pkg_only {
+    if args.gen_pkg_only {
         bail!(compile: false, execute: false)
     }
 

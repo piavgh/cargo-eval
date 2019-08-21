@@ -105,8 +105,8 @@ fn install(amend_pathext: bool) -> Result<()> {
         let env = hklm.open_subkey(r#"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"#)?;
 
         let pathext: String = env.get_value("PATHEXT")?;
-        if !pathext.split(";").any(|e| e.eq_ignore_ascii_case(".crs")) {
-            let pathext = pathext.split(";").chain(Some(".CRS")).join(";");
+        if !pathext.split(';').any(|e| e.eq_ignore_ascii_case(".crs")) {
+            let pathext = pathext.split(';').chain(Some(".CRS")).join(";");
             env.set_value("PATHEXT", &pathext)?;
         }
 
@@ -138,8 +138,8 @@ fn uninstall() -> Result<()> {
         let env = hklm.open_subkey(r#"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"#)?;
 
         let pathext: String = env.get_value("PATHEXT")?;
-        if pathext.split(";").any(|e| e.eq_ignore_ascii_case(".crs")) {
-            let pathext = pathext.split(";").filter(|e| !e.eq_ignore_ascii_case(".crs")).join(";");
+        if pathext.split(';').any(|e| e.eq_ignore_ascii_case(".crs")) {
+            let pathext = pathext.split(';').filter(|e| !e.eq_ignore_ascii_case(".crs")).join(";");
             env.set_value("PATHEXT", &pathext)?;
             println!("Removed `.crs` from PATHEXT.  You may need to log out for the change to take effect.");
         }
