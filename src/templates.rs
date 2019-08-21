@@ -10,7 +10,7 @@ use open;
 use regex::Regex;
 use crate::consts;
 use crate::error::{Blame, MainError, Result, ResultExt};
-use crate::platform;
+use crate::app;
 
 lazy_static! {
     static ref RE_SUB: Regex = Regex::new(r#"#\{([A-Za-z_][A-Za-z0-9_]*)}"#).unwrap();
@@ -116,16 +116,15 @@ pub fn expand(src: &str, subs: &HashMap<&str, &str>) -> Result<String> {
 /**
 Returns the path to the template directory.
 */
-pub fn get_template_path() -> Result<PathBuf> {
-    if cfg!(debug_assertions) {
-        use std::env;
-        if let Ok(path) = env::var("CARGO_SCRIPT_DEBUG_TEMPLATE_PATH") {
-            return Ok(path.into());
-        }
+pub fn get_template_path() -> PathBuf {
+  #[cfg(debug_assertions)] {
+    use std::env;
+    if let Ok(path) = env::var("CARGO_SCRIPT_DEBUG_TEMPLATE_PATH") {
+        return path.into();
     }
+  }
 
-    let cache_path = platform::get_config_dir()?;
-    Ok(cache_path.join("script-templates"))
+  app::config_dir().unwrap().join("templates")
 }
 
 /**
@@ -134,7 +133,7 @@ Attempts to locate and load the contents of the specified template.
 pub fn get_template(name: &str) -> Result<Cow<'static, str>> {
     use std::io::Read;
 
-    let base = get_template_path()?;
+    let base = get_template_path();
 
     let file = fs::File::open(base.join(format!("{}.rs", name)))
         .map_err(MainError::from)
@@ -176,7 +175,7 @@ fn dump(name: &str) -> Result<()> {
 fn list() -> Result<()> {
     use std::ffi::OsStr;
 
-    let t_path = get_template_path()?;
+    let t_path = get_template_path();
 
     if !t_path.exists() {
         return Err(format!("cannot list template directory `{}`: it does not exist", t_path.display()).into());
@@ -203,7 +202,7 @@ fn list() -> Result<()> {
 }
 
 fn show(path: bool) -> Result<()> {
-    let t_path = get_template_path()?;
+    let t_path = get_template_path();
 
     if path {
         println!("{}", t_path.display());

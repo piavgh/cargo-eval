@@ -1,11 +1,33 @@
 use std::env;
+use std::path::PathBuf;
 
 use clap::{App, Arg, ArgGroup, ArgMatches, SubCommand, AppSettings};
+use dirs;
 
 use crate::templates;
 
+const NAME: &'static str = "cargo-eval";
+
+#[inline(always)]
+const fn name() -> &'static str {
+  NAME
+}
+
+#[inline(always)]
+fn subcommand_name() -> &'static str {
+  &name()[6..]
+}
+
+pub fn config_dir() -> Option<PathBuf> {
+  Some(dirs::config_dir()?.join(name()))
+}
+
+pub fn cache_dir() -> Option<PathBuf> {
+  Some(dirs::cache_dir()?.join(name()))
+}
+
 fn app() -> App<'static, 'static> {
-  let mut app = SubCommand::with_name("eval")
+  let mut app = SubCommand::with_name(subcommand_name())
     .version(env!("CARGO_PKG_VERSION"))
     .about("Compiles and runs “Cargoified Rust scripts”.")
     .usage("cargo eval [FLAGS OPTIONS] [--] <script> <args>...")
@@ -142,11 +164,10 @@ pub fn get_matches() -> ArgMatches<'static> {
   let mut args = env::args().collect::<Vec<_>>();
 
   let subcommand = app();
-  let subcommand_name = subcommand.get_name().to_owned();
 
   // Insert subcommand argument if called directly.
-  if args.get(1).map(|s| *s == subcommand_name) != Some(true) {
-    args.insert(1, subcommand_name.clone());
+  if args.get(1).map(|s| *s == subcommand_name()) != Some(true) {
+    args.insert(1, subcommand_name().into());
   }
 
   // We have to wrap our command for the output to look right.
@@ -155,5 +176,5 @@ pub fn get_matches() -> ArgMatches<'static> {
     .setting(AppSettings::SubcommandRequiredElseHelp)
     .subcommand(subcommand)
     .get_matches_from(args)
-    .subcommand_matches(subcommand_name).unwrap().clone()
+    .subcommand_matches(subcommand_name()).unwrap().clone()
 }

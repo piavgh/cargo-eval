@@ -3,8 +3,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub use self::inner::*;
 
-use crate::error::MainError;
-
 // Last-modified time of a file, in milliseconds since the UNIX epoch.
 pub fn file_last_modified(file: &File) -> u128 {
   file.metadata().and_then(|md| md.modified().map(|t| t.duration_since(UNIX_EPOCH).unwrap().as_millis())).unwrap_or(0)
@@ -21,36 +19,8 @@ mod inner {
     pub use super::*;
 
     use std::path::{Path, PathBuf};
-    use std::{env, io};
+    use std::io;
     use std::os::unix::ffi::OsStrExt;
-    use crate::error::Blame;
-
-    /**
-    Get a directory suitable for storing user- and machine-specific data which may or may not be persisted across sessions.
-
-    This is chosen to match the location where Cargo places its cache data.
-    */
-    pub fn get_cache_dir() -> Result<PathBuf, MainError> {
-        if let Some(home) = env::var_os("CARGO_HOME") {
-            return Ok(home.into());
-        }
-
-        if let Some(home) = env::var_os("HOME") {
-            return Ok(Path::new(&home).join(".cargo"));
-        }
-
-        Err((Blame::Human, "neither $CARGO_HOME nor $HOME is defined").into())
-    }
-
-    /**
-    Get a directory suitable for storing user-specific configuration data.
-
-    This is chosen to match the location where Cargo places its configuration data.
-    */
-    pub fn get_config_dir() -> Result<PathBuf, MainError> {
-        // Currently, this appears to be the same as the cache directory.
-        get_cache_dir()
-    }
 
     pub fn write_path<W>(w: &mut W, path: &Path) -> io::Result<()>
     where W: io::Write {
@@ -100,65 +70,6 @@ pub mod inner {
         knownfolders::{FOLDERID_LocalAppData, FOLDERID_RoamingAppData},
       },
     };
-
-    /**
-    Get a directory suitable for storing user- and machine-specific data which may or may not be persisted across sessions.
-
-    This is *not* chosen to match the location where Cargo places its cache data, because Cargo is *wrong*.  This is at least *less wrong*.
-
-    On Windows, LocalAppData is where user- and machine- specific data should go, but it *might* be more appropriate to use whatever the official name for "Program Data" is, though.
-    */
-    pub fn get_cache_dir() -> Result<PathBuf, MainError> {
-        let rfid = &FOLDERID_LocalAppData;
-        let dir = sh_get_known_folder_path(rfid, 0, ::std::ptr::null_mut())
-            .map_err(|e| e.to_string())?;
-        Ok(Path::new(&dir).to_path_buf().join("Cargo"))
-    }
-
-    /**
-    Get a directory suitable for storing user-specific configuration data.
-
-    This is *not* chosen to match the location where Cargo places its cache data, because Cargo is *wrong*.  This is at least *less wrong*.
-    */
-    pub fn get_config_dir() -> Result<PathBuf, MainError> {
-        let rfid = &FOLDERID_RoamingAppData;
-        let dir = sh_get_known_folder_path(rfid, 0, ::std::ptr::null_mut())
-            .map_err(|e| e.to_string())?;
-        Ok(Path::new(&dir).to_path_buf().join("Cargo"))
-    }
-
-    fn sh_get_known_folder_path(rfid: &KNOWNFOLDERID, dwFlags: DWORD, hToken: HANDLE) -> Result<OsString, HRESULT> {
-        let mut psz_path: PWSTR = unsafe { mem::uninitialized() };
-        let hresult = unsafe {
-            SHGetKnownFolderPath(
-                rfid,
-                dwFlags,
-                hToken,
-                mem::transmute(&mut psz_path as &mut PWSTR as *mut PWSTR)
-            )
-        };
-
-        if hresult == S_OK {
-            let r = unsafe { pwstr_to_os_string(psz_path) };
-            unsafe { CoTaskMemFree(psz_path as *mut _) };
-            Ok(r)
-        } else {
-            Err(hresult)
-        }
-    }
-
-    unsafe fn pwstr_to_os_string(ptr: PWSTR) -> OsString {
-        OsStringExt::from_wide(::std::slice::from_raw_parts(ptr, pwstr_len(ptr)))
-    }
-
-    unsafe fn pwstr_len(mut ptr: PWSTR) -> usize {
-        let mut len = 0;
-        while *ptr != 0 {
-            len += 1;
-            ptr = ptr.offset(1);
-        }
-        len
-    }
 
     pub fn write_path<W>(w: &mut W, path: &Path) -> io::Result<()>
     where W: io::Write {

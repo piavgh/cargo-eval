@@ -25,11 +25,6 @@ If this is set to `true`, the digests used for package IDs will be replaced with
 const STUB_HASHES: bool = false;
 
 /**
-If this is set to `false`, then code that automatically deletes stuff *won't*.
-*/
-const ALLOW_AUTO_REMOVE: bool = true;
-
-/**
 Length of time to suppress Cargo output.
 */
 #[cfg(feature="suppress-cargo-output")]
@@ -200,8 +195,8 @@ fn try_main() -> Result<i32> {
     };
 
     if log_enabled!(log::Level::Debug) {
-        let scp = get_script_cache_path()?;
-        let bcp = get_binary_cache_path()?;
+        let scp = script_cache_path();
+        let bcp = binary_cache_path();
         debug!("script-cache path: {:?}", scp);
         debug!("binary-cache path: {:?}", bcp);
     }
@@ -408,8 +403,8 @@ fn clean_cache(max_age: u128) -> Result<()> {
 
     if max_age == 0 {
         info!("max_age is 0, clearing binary cache...");
-        let cache_dir = get_binary_cache_path()?;
-        if ALLOW_AUTO_REMOVE {
+        let cache_dir = binary_cache_path();
+        if cache_dir.is_dir() {
             if let Err(err) = fs::remove_dir_all(&cache_dir) {
                 error!("failed to remove binary cache {:?}: {}", cache_dir, err);
             }
@@ -419,7 +414,12 @@ fn clean_cache(max_age: u128) -> Result<()> {
     let cutoff = platform::current_time() - max_age;
     info!("cutoff:     {:>20?} ms", cutoff);
 
-    let cache_dir = get_script_cache_path()?;
+    let cache_dir = script_cache_path();
+
+    if !cache_dir.is_dir() {
+      return Ok(())
+    }
+
     for child in fs::read_dir(cache_dir)? {
         let child = child?;
         let path = child.path();
@@ -453,12 +453,8 @@ fn clean_cache(max_age: u128) -> Result<()> {
 
         if remove_dir() {
             info!("removing {:?}", path);
-            if ALLOW_AUTO_REMOVE {
-                if let Err(err) = fs::remove_dir_all(&path) {
-                    error!("failed to remove {:?} from cache: {}", path, err);
-                }
-            } else {
-                info!("(suppressed remove)");
+            if let Err(err) = fs::remove_dir_all(&path) {
+                error!("failed to remove {:?} from cache: {}", path, err);
             }
         }
     }
@@ -488,11 +484,7 @@ fn gen_pkg_and_compile(
         // DO NOT try deleting ANYTHING if we're not cleaning up inside our own cache.  We *DO NOT* want to risk killing user files.
         if action.using_cache {
             info!("cleaning up cache directory {:?}", pkg_path);
-            if ALLOW_AUTO_REMOVE {
-                fs::remove_dir_all(pkg_path)?;
-            } else {
-                info!("(suppressed remove)");
-            }
+            fs::remove_dir_all(pkg_path)?;
         }
         Ok(())
     });
@@ -724,7 +716,7 @@ fn decide_action_for(
     let (pkg_path, using_cache) = pkg_path.map(|p| (p.into(), false))
         .unwrap_or_else(|| {
             // This can't fail.  Seriously, we're *fucked* if we can't work this out.
-            let cache_path = get_script_cache_path().unwrap();
+            let cache_path = script_cache_path();
             info!("cache_path: {:?}", cache_path);
 
             let id = {
@@ -955,17 +947,15 @@ where P: AsRef<Path> {
 /**
 Returns the path to the cache directory.
 */
-fn get_script_cache_path() -> Result<PathBuf> {
-    let cache_path = platform::get_cache_dir()?;
-    Ok(cache_path.join("script-cache"))
+fn script_cache_path() -> PathBuf {
+  app::cache_dir().unwrap().join("scripts")
 }
 
 /**
 Returns the path to the binary cache directory.
 */
-fn get_binary_cache_path() -> Result<PathBuf> {
-    let cache_path = platform::get_cache_dir()?;
-    Ok(cache_path.join("binary-cache"))
+fn binary_cache_path() -> PathBuf {
+  app::cache_dir().unwrap().join("bin")
 }
 
 /**
@@ -1214,7 +1204,7 @@ fn cargo(cmd_name: &str, manifest: &str, use_bincache: bool, meta: &PackageMetad
     }
 
     if use_bincache {
-        cmd.env("CARGO_TARGET_DIR", get_binary_cache_path()?);
+        cmd.env("CARGO_TARGET_DIR", binary_cache_path());
     }
 
     // Block `--release` on `bench`.
