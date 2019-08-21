@@ -25,12 +25,13 @@ script:
   - cargo test --all --all-features --release
   - cargo clippy
 
-jobs:
-  include:
-    - stage: publish
-      script: cargo publish --token "${CRATES_IO_TOKEN}"
-      rust: stable
-      if: (tag =~ ^v) AND (branch = master)
+deploy:
+  provider: cargo
+  token: "${CRATES_IO_TOKEN}"
+  on:
+    tags: true
+    branch: master
+    condition: $TRAVIS_RUST_VERSION = stable && $TRAVIS_OS_NAME = linux
 
 notifications:
   email:
