@@ -122,7 +122,10 @@ impl BuildKind {
     }
 }
 
+
 fn parse_args() -> SubCommand {
+  use clap::{value_t, values_t};
+
     let m = app::get_matches();
 
     if let Some(m) = m.subcommand_matches("templates") {
@@ -133,11 +136,6 @@ fn parse_args() -> SubCommand {
         if let Some(m) = m.subcommand_matches("file-association") {
             return self::SubCommand::FileAssoc(file_assoc::Args::parse(m));
         }
-    }
-
-    fn owned_vec_string<'a, I>(v: Option<I>) -> Vec<String>
-    where I: ::std::iter::Iterator<Item=&'a str> {
-        v.map(|itr| itr.map(Into::into).collect()).unwrap_or_else(|| vec![])
     }
 
     fn yes_or_no(v: Option<&str>) -> Option<bool> {
@@ -157,26 +155,26 @@ fn parse_args() -> SubCommand {
     }
 
     self::SubCommand::Script(Args {
-        script: m.value_of("script").map(Into::into),
-        args: owned_vec_string(m.values_of("args")),
-        features: m.value_of("features").map(Into::into),
+        script: value_t!(m, "script", String).ok(),
+        args: values_t!(m, "args", String).unwrap_or_default(),
+        features: value_t!(m, "features", String).ok(),
 
         expr: m.is_present("expr"),
         loop_: m.is_present("loop"),
         count: m.is_present("count"),
 
-        pkg_path: m.value_of("pkg_path").map(Into::into),
+        pkg_path: value_t!(m, "pkg_path", String).ok(),
         gen_pkg_only: m.is_present("gen_pkg_only"),
         build_only: m.is_present("build_only"),
         clear_cache: m.is_present("clear_cache"),
         debug: m.is_present("debug"),
-        dep: owned_vec_string(m.values_of("dep")),
+        dep: values_t!(m, "dep", String).unwrap_or_default(),
         force: m.is_present("force"),
-        unstable_features: owned_vec_string(m.values_of("unstable_features")),
+        unstable_features: values_t!(m, "unstable_features", String).unwrap_or_default(),
         use_bincache: yes_or_no(m.value_of("use_bincache")),
         migrate_data: run_kind(m.value_of("migrate_data")),
         build_kind: BuildKind::from_flags(m.is_present("test"), m.is_present("bench")),
-        template: m.value_of("template").map(Into::into),
+        template: value_t!(m, "template", String).ok(),
     })
 }
 
