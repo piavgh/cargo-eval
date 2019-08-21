@@ -54,7 +54,6 @@ use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 
 use crate::error::{Blame, MainError, Result};
-use crate::platform::MigrationKind;
 use crate::util::{Defer};
 
 #[derive(Debug)]
@@ -84,7 +83,6 @@ struct Args {
     force: bool,
     unstable_features: Vec<String>,
     use_bincache: Option<bool>,
-    migrate_data: Option<MigrationKind>,
     build_kind: BuildKind,
     template: Option<String>,
 }
@@ -146,14 +144,6 @@ fn parse_args() -> SubCommand {
         })
     }
 
-    fn run_kind(v: Option<&str>) -> Option<MigrationKind> {
-        v.map(|v| match v {
-            "dry-run" => MigrationKind::DryRun,
-            "for-real" => MigrationKind::ForReal,
-            _ => unreachable!()
-        })
-    }
-
     self::SubCommand::Script(Args {
         script: value_t!(m, "script", String).ok(),
         args: values_t!(m, "args", String).unwrap_or_default(),
@@ -172,7 +162,6 @@ fn parse_args() -> SubCommand {
         force: m.is_present("force"),
         unstable_features: values_t!(m, "unstable_features", String).unwrap_or_default(),
         use_bincache: yes_or_no(m.value_of("use_bincache")),
-        migrate_data: run_kind(m.value_of("migrate_data")),
         build_kind: BuildKind::from_flags(m.is_present("test"), m.is_present("bench")),
         template: value_t!(m, "template", String).ok(),
     })
@@ -209,32 +198,6 @@ fn try_main() -> Result<i32> {
         #[cfg(windows)]
         SubCommand::FileAssoc(args) => return file_assoc::try_main(args),
     };
-
-    /*
-    Do data migration before anything else, since it can cause the location of stuff to change.
-    */
-    if let Some(run_kind) = args.migrate_data {
-        println!("Migrating data...");
-        let (log, res) = platform::migrate_old_data(run_kind);
-        match (log.len(), res) {
-            (0, Ok(())) => {
-                println!("Nothing to do.");
-                return Ok(0);
-            },
-            (_, Ok(())) => {
-                for entry in log {
-                    println!("- {}", entry);
-                }
-                return Ok(0);
-            },
-            (_, Err(err)) => {
-                for entry in log {
-                    println!("- {}", entry);
-                }
-                return Err(err);
-            }
-        }
-    }
 
     if log_enabled!(log::Level::Debug) {
         let scp = get_script_cache_path()?;
