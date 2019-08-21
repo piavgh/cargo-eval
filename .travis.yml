@@ -18,27 +18,47 @@ matrix:
   allow_failures:
     - rust: nightly
 
-install: |
-  if [ "$TRAVIS_RUST_VERSION" != nightly ]; then
-    rustup component add clippy
-  fi
-
-script:
-  - cargo test --all --all-features
-  - cargo test --all --all-features --release
-  - |
-    if [ "$TRAVIS_RUST_VERSION" != nightly ]; then
-      cargo clippy
-    fi
-
-deploy:
-  provider: script
-  script:
-    - cargo publish --token "${CRATES_IO_TOKEN}"
-  on:
-    tags: true
-    all_branches: true
-    condition: $CRATES_IO_PUBLISH = true
+jobs:
+  include:
+    - stage: test
+      name: debug
+      script: cargo test --all --all-features
+      rust: stable
+      os: linux
+    - stage: test
+      name: release
+      script: cargo test --all --all-features --release
+    - stage: test
+      name: debug
+      script: cargo test --all --all-features
+      rust: stable
+      os: osx
+    - stage: test
+      name: release
+      script: cargo test --all --all-features --release
+      rust: stable
+      os: osx
+    - stage: test
+      name: debug
+      script: cargo test --all --all-features
+      rust: stable
+      os: windows
+    - stage: test
+      name: release
+      script: cargo test --all --all-features --release
+      rust: stable
+      os: windows
+    - stage: clippy
+      name: install clippy
+      script: rustup component add clippy
+      if: env(TRAVIS_RUST_VERSION) != nightly
+    - stage: clippy
+      name: clippy
+      script: cargo clippy
+      if: env(TRAVIS_RUST_VERSION) != nightly
+    - stage: publish
+      script: cargo publish --token "${CRATES_IO_TOKEN}"
+      if: env(CRATES_IO_PUBLISH) = true AND (tag =~ ^v) AND (branch = master)
 
 notifications:
   email:
