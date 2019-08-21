@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-macro_rules! cargo_script {
+macro_rules! cargo_eval {
     (
         #[env($($env_k:ident=$env_v:expr),* $(,)*)]
         $($args:expr),* $(,)*
@@ -52,7 +52,7 @@ macro_rules! cargo_script {
     };
 
     ($($args:expr),* $(,)*) => {
-        cargo_script!(#[env()] $($args),*)
+        cargo_eval!(#[env()] $($args),*)
     };
 }
 
