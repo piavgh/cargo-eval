@@ -46,7 +46,7 @@ fn main() {
 
 fn try_main() -> Result<(), Box<dyn std::error::Error>> {
     match {#{script}} {
-        __cargo_script_expr => println!("{:?}", __cargo_script_expr)
+        __cargo_eval_expr => println!("{:?}", __cargo_eval_expr)
     }
     Ok(())
 }
