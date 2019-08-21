@@ -1,12 +1,11 @@
 /*!
 This module is concerned with how `cargo-eval` extracts the manfiest from a script file.
 */
-extern crate hoedown;
-extern crate regex;
-
 use std::collections::HashMap;
 use std::path::Path;
-use self::regex::Regex;
+
+use pulldown_cmark::{Parser, Options, Event, Tag};
+use regex::Regex;
 use toml;
 
 use crate::consts;
@@ -607,66 +606,48 @@ fn find_code_block_manifest(s: &str) -> Option<(Manifest, &str)> {
     };
 
     scrape_markdown_manifest(&comment)
-        .unwrap_or(None)
         .map(|m| (Manifest::TomlOwned(m), s))
 }
 
 /**
 Extracts the first `Cargo` fenced code block from a chunk of Markdown.
 */
-fn scrape_markdown_manifest(content: &str) -> Result<Option<String>> {
-    use self::hoedown::{Buffer, Markdown, Render};
+fn scrape_markdown_manifest(content: &str) -> Option<String> {
+  // To match `librustdoc/html/markdown.rs` `opts`.
+  let exts = Options::ENABLE_TABLES | Options::ENABLE_FOOTNOTES;
 
-    // To match librustdoc/html/markdown.rs, HOEDOWN_EXTENSIONS.
-    let exts
-        = hoedown::NO_INTRA_EMPHASIS
-        | hoedown::TABLES
-        | hoedown::FENCED_CODE
-        | hoedown::AUTOLINK
-        | hoedown::STRIKETHROUGH
-        | hoedown::SUPERSCRIPT
-        | hoedown::FOOTNOTES;
+  let md = Parser::new_ext(&content, exts);
 
-    let md = Markdown::new(&content).extensions(exts);
+  let mut it = md.skip_while(|e| if let Event::Start(Tag::CodeBlock(ref info)) = e {
+    info.to_lowercase() != "cargo"
+  } else {
+    true
+  });
 
-    struct ManifestScraper {
-        seen_manifest: bool,
-    }
+  it.next()?;
 
-    impl Render for ManifestScraper {
-        fn code_block(&mut self, output: &mut Buffer, text: Option<&Buffer>, lang: Option<&Buffer>) {
-            let lang = lang.map(|b| b.to_str().unwrap()).unwrap_or("");
+  let s = it.take_while(|e| if let Event::End(Tag::CodeBlock(_)) = e { false } else { true})
+  .filter_map(|e| if let Event::Text(text) = e {
+    Some(text.into_string())
+  } else {
+    None
+  })
+  .collect::<String>();
 
-            if !self.seen_manifest && lang.eq_ignore_ascii_case("cargo") {
-                // Pass it through.
-                info!("found code block manifest");
-                if let Some(text) = text {
-                    output.pipe(text);
-                }
-                self.seen_manifest = true;
-            }
-        }
-    }
-
-    let mut ms = ManifestScraper { seen_manifest: false };
-    let mani_buf = ms.render(&md);
-
-    if !ms.seen_manifest { return Ok(None) }
-    mani_buf.to_str().map(|s| Some(s.into()))
-        .map_err(|_| "error decoding manifest as UTF-8".into())
+  Some(s)
 }
 
 #[test]
 fn test_scrape_markdown_manifest() {
     macro_rules! smm {
-        ($c:expr) => (scrape_markdown_manifest($c).map_err(|e| e.to_string()));
+        ($c:expr) => (scrape_markdown_manifest($c));
     }
 
     assert_eq!(smm!(
 r#"There is no manifest in this comment.
 "#
         ),
-Ok(None)
+None
     );
 
     assert_eq!(smm!(
@@ -683,7 +664,7 @@ println!("Nor is this.");
     Or this.
 "#
         ),
-Ok(None)
+None
     );
 
     assert_eq!(smm!(
@@ -694,8 +675,8 @@ dependencies = { time = "*" }
 ```
 "#
         ),
-Ok(Some(r#"dependencies = { time = "*" }
-"#.into()))
+Some(r#"dependencies = { time = "*" }
+"#.into())
     );
 
     assert_eq!(smm!(
@@ -712,8 +693,8 @@ dependencies = { time = "*" }
 ```
 "#
         ),
-Ok(Some(r#"dependencies = { time = "*" }
-"#.into()))
+Some(r#"dependencies = { time = "*" }
+"#.into())
     );
 
     assert_eq!(smm!(
@@ -730,8 +711,8 @@ dependencies = { explode = true }
 ```
 "#
         ),
-Ok(Some(r#"dependencies = { time = "*" }
-"#.into()))
+Some(r#"dependencies = { time = "*" }
+"#.into())
     );
 }
 

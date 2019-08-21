@@ -24,7 +24,7 @@ suppress-cargo-output = ["chan"]
 chan = { version = "0.1", optional = true }
 clap = "2.33"
 env_logger = "0.6"
-hoedown = "6.0.0"
+pulldown-cmark = "0.5"
 lazy_static = "1"
 log = "0.4"
 open = "1.2.0"
