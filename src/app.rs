@@ -6,7 +6,7 @@ use dirs;
 
 use crate::templates;
 
-const NAME: &'static str = "cargo-eval";
+const NAME: &str = "cargo-eval";
 
 #[inline(always)]
 const fn name() -> &'static str {
