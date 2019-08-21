@@ -218,7 +218,7 @@ fn parse_args(args: &[String]) -> SubCommand {
             )
 
             /*
-            Options that change how cargo script itself behaves, and don't alter what the script will do.
+            Options that change how cargo eval itself behaves, and don't alter what the script will do.
             */
             .arg(Arg::with_name("build_only")
                 .help("Build the script, but don't run it.")
