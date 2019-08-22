@@ -117,20 +117,12 @@ fn install(amend_pathext: bool) -> Result<()> {
 }
 
 fn uninstall() -> Result<()> {
-    let mut ignored_missing = false;
-    {
-        let mut notify = || ignored_missing = true;
+  let hlcr = RegKey::predef(wre::HKEY_CLASSES_ROOT);
+  hlcr.delete_subkey(r#"CargoScript.Crs\shell\open\command"#).ignore_missing()?;
+  hlcr.delete_subkey(r#"CargoScript.Crs\shell\open"#).ignore_missing()?;
+  hlcr.delete_subkey(r#"CargoScript.Crs\shell"#).ignore_missing()?;
+  hlcr.delete_subkey(r#"CargoScript.Crs"#).ignore_missing()?;
 
-        let hlcr = RegKey::predef(wre::HKEY_CLASSES_ROOT);
-        hlcr.delete_subkey(r#"CargoScript.Crs\shell\open\command"#).ignore_missing_and(&mut notify)?;
-        hlcr.delete_subkey(r#"CargoScript.Crs\shell\open"#).ignore_missing_and(&mut notify)?;
-        hlcr.delete_subkey(r#"CargoScript.Crs\shell"#).ignore_missing_and(&mut notify)?;
-        hlcr.delete_subkey(r#"CargoScript.Crs"#).ignore_missing_and(&mut notify)?;
-    }
-
-    if ignored_missing {
-        println!("Ignored some missing registry entries.");
-    }
     println!("Deleted cargo-eval registry entry.");
 
     {
@@ -149,23 +141,17 @@ fn uninstall() -> Result<()> {
 }
 
 trait IgnoreMissing {
-    fn ignore_missing_and<F>(self, f: F) -> Self
-    where F: FnOnce();
+  fn ignore_missing(self) -> Self;
 }
 
 impl IgnoreMissing for io::Result<()> {
-    fn ignore_missing_and<F>(self, f: F) -> Self
-    where F: FnOnce() {
-        match self {
-            Ok(()) => Ok(()),
-            Err(e) => {
-                if e.kind() == io::ErrorKind::NotFound {
-                    f();
-                    Ok(())
-                } else {
-                    Err(e)
-                }
-            }
-        }
+  fn ignore_missing(self) -> Self {
+    if let Err(ref e) = self {
+      if e.kind() == io::ErrorKind::NotFound {
+        return Ok(())
+      }
     }
+
+    self
+  }
 }
