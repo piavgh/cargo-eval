@@ -8,7 +8,6 @@ use std::path::PathBuf;
 use clap;
 use open;
 use regex::Regex;
-use crate::consts;
 use crate::error::{Blame, MainError, Result, ResultExt};
 use crate::app;
 
@@ -157,10 +156,10 @@ pub fn get_template(name: &str) -> Result<Cow<'static, str>> {
 
 fn builtin_template(name: &str) -> Option<&'static str> {
     Some(match name {
-        "expr" => consts::EXPR_TEMPLATE,
-        "file" => consts::FILE_TEMPLATE,
-        "loop" => consts::LOOP_TEMPLATE,
-        "loop-count" => consts::LOOP_COUNT_TEMPLATE,
+        "expr" => include_str!("templates/expr.rs"),
+        "file" => include_str!("templates/file.rs"),
+        "loop" => include_str!("templates/loop.rs"),
+        "loop-count" => include_str!("templates/loop_count.rs"),
         _ => return None,
     })
 }

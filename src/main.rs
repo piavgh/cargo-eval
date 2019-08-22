@@ -912,7 +912,7 @@ Work out the path to a package's metadata file.
 */
 fn get_pkg_metadata_path<P>(pkg_path: P) -> PathBuf
 where P: AsRef<Path> {
-    pkg_path.as_ref().join(consts::METADATA_FILE)
+    pkg_path.as_ref().join("metadata.json")
 }
 
 /**
@@ -962,7 +962,7 @@ where P: AsRef<Path> {
     }
 
     // Ok, now try other extensions.
-    for &ext in consts::SEARCH_EXTS {
+    for &ext in &["crs", "rs"] {
         let path = path.with_extension(ext);
         if let Ok(file) = fs::File::open(&path) {
             return Some((path, file));

@@ -8,7 +8,6 @@ use pulldown_cmark::{Parser, Options, Event, Tag};
 use regex::Regex;
 use toml;
 
-use crate::consts;
 use crate::error::{Blame, Result};
 use crate::templates;
 use crate::Input;
@@ -42,7 +41,7 @@ pub fn split_input(input: &Input, deps: &[(String, String)], prelude_items: &[St
     let (part_mani, source, template, sub_prelude) = match *input {
         Input::File(_, _, content, _) => {
             assert_eq!(prelude_items.len(), 0);
-            let content = strip_hashbang(content);
+            let content = strip_hashbang(content).trim_end();
             let (manifest, source) = find_embedded_manifest(content)
                 .unwrap_or((Manifest::Toml(""), content));
 
@@ -68,7 +67,7 @@ pub fn split_input(input: &Input, deps: &[(String, String)], prelude_items: &[St
 
     let mut prelude_str;
     let mut subs = HashMap::with_capacity(2);
-    subs.insert(consts::SCRIPT_BODY_SUB, &source[..]);
+    subs.insert("script", &source[..]);
 
     if sub_prelude {
         prelude_str = String::with_capacity(prelude_items
@@ -79,7 +78,7 @@ pub fn split_input(input: &Input, deps: &[(String, String)], prelude_items: &[St
             prelude_str.push_str(i);
             prelude_str.push_str("\n");
         }
-        subs.insert(consts::SCRIPT_PRELUDE_SUB, &prelude_str[..]);
+        subs.insert("prelude", &prelude_str[..]);
     }
 
     let source = templates::expand(&template, &subs)?;
@@ -137,7 +136,8 @@ edition = "2018"
 name = "n"
 version = "0.1.0"
 "#,
-r#"fn main() {}"#
+r#"fn main() {}
+"#
         )
     );
 
@@ -952,9 +952,9 @@ fn default_manifest(input: &Input) -> Result<toml::value::Table> {
     let mani_str = {
         let pkg_name = input.package_name();
         let mut subs = HashMap::with_capacity(2);
-        subs.insert(consts::MANI_NAME_SUB, &*pkg_name);
-        subs.insert(consts::MANI_FILE_SUB, &input.safe_name()[..]);
-        templates::expand(consts::DEFAULT_MANIFEST, &subs)?
+        subs.insert("name", &*pkg_name);
+        subs.insert("file", &input.safe_name()[..]);
+        templates::expand(include_str!("templates/default_manifest.toml"), &subs)?
     };
     toml::from_str(&mani_str)
         .map_err(|_| "could not parse default manifest, somehow".into())
