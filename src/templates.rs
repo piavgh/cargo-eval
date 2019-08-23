@@ -156,10 +156,10 @@ pub fn get_template(name: &str) -> Result<Cow<'static, str>> {
 
 fn builtin_template(name: &str) -> Option<&'static str> {
     Some(match name {
-        "expr" => include_str!("templates/expr.rs"),
-        "file" => include_str!("templates/file.rs"),
-        "loop" => include_str!("templates/loop.rs"),
-        "loop-count" => include_str!("templates/loop_count.rs"),
+        "expr" => include_str!("templates/expr.rs").trim_end(),
+        "file" => include_str!("templates/file.rs").trim_end(),
+        "loop" => include_str!("templates/loop.rs").trim_end(),
+        "loop-count" => include_str!("templates/loop_count.rs").trim_end(),
         _ => return None,
     })
 }

@@ -136,8 +136,7 @@ edition = "2018"
 name = "n"
 version = "0.1.0"
 "#,
-r#"fn main() {}
-"#
+r#"fn main() {}"#
         )
     );
 
@@ -163,8 +162,7 @@ version = "0.1.0"
 "#,
 r#"
 ---
-fn main() {}
-"#
+fn main() {}"#
         )
     );
 
@@ -191,8 +189,7 @@ version = "0.1.0"
 r#"[dependencies]
 time="0.1.25"
 ---
-fn main() {}
-"#
+fn main() {}"#
         )
     );
 
@@ -218,8 +215,7 @@ version = "0.1.0"
 "#,
 r#"
 // Cargo-Deps: time="0.1.25"
-fn main() {}
-"#
+fn main() {}"#
         )
     );
 
@@ -246,8 +242,7 @@ version = "0.1.0"
 "#,
 r#"
 // Cargo-Deps: time="0.1.25", libc="0.2.5"
-fn main() {}
-"#
+fn main() {}"#
         )
     );
 
@@ -287,8 +282,7 @@ Here is a manifest:
 time = "0.1.25"
 ```
 */
-fn main() {}
-"#
+fn main() {}"#
         )
     );
 }
@@ -954,7 +948,7 @@ fn default_manifest(input: &Input) -> Result<toml::value::Table> {
         let mut subs = HashMap::with_capacity(2);
         subs.insert("name", &*pkg_name);
         subs.insert("file", &input.safe_name()[..]);
-        templates::expand(include_str!("templates/default_manifest.toml"), &subs)?
+        templates::expand(include_str!("templates/default_manifest.toml").trim_end(), &subs)?
     };
     toml::from_str(&mani_str)
         .map_err(|_| "could not parse default manifest, somehow".into())
