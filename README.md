@@ -6,7 +6,7 @@ Some of `cargo-eval`'s features include:
 
 - Reading Cargo manifests embedded in Rust scripts.
 - Caching compiled artefacts (including dependencies) to amortise build times.
-- Supporting executable Rust scripts via UNIX hashbangs and Windows file associations.
+- Supporting executable Rust scripts via UNIX shebangs and Windows file associations.
 - Evaluating expressions on the command-line.
 - Using expressions as stream filters (*i.e.* for use in command pipelines).
 - Running unit tests and benchmarks from scripts.
@@ -18,15 +18,13 @@ Table of contents:
 
 - [Installation](#installation)
   - [Features](#features)
-  - [Manually Compiling and Installing](#compiling)
-  - [Self-Executing Scripts](#hashbang)
+  - [Self-Executing Scripts](#shebang)
 - [Usage](#usage)
   - [Scripts](#scripts)
   - [Expressions](#expressions)
   - [Stream Filters](#filters)
   - [Environment Variables](#env-vars)
   - [Templates](#templates)
-- [Known Issues](#issues)
 - [License](#license)
   - [Contribution](#contribution)
 
@@ -52,28 +50,21 @@ The following features are defined:
 
 - `suppress-cargo-output` (default): if building the script takes less than 2 seconds and succeeds, `cargo-eval` will suppress Cargo's output.  Note that this disabled coloured Cargo output on Windows.
 
-<a name="compiling"></a>
-### Manually Compiling and Installing
-
-`cargo-eval` requires Rust 1.11 or higher to build.  Rust 1.4+ was supported prior to version 0.2.
-
-Once built, you should place the resulting executable somewhere on your `PATH`.  At that point, you should be able to invoke it by using `cargo eval`.
-
-<a name="hashbang"></a>
+<a name="shebang"></a>
 ### Self-Executing Scripts
 
-On UNIX systems, you can use `#!/usr/bin/env cargo eval --` as a hashbang line in a Rust script.  If the script file is executable, this will allow you to execute a script file directly.
+On UNIX systems, you can use `#!/usr/bin/env cargo eval --` as a shebang line in a Rust script.  If the script file is executable, this will allow you to execute a script file directly.
 
 If you are using Windows, you can associate the `.crs` extension (which is simply a renamed `.rs` file) with `cargo-eval`.  This allows you to execute Rust scripts simply by naming them like any other executable or script.
 
 This can be done using the `cargo eval file-association` command.  This command can also remove the file association.  If you pass `--amend-pathext` to the `file-assocation install` command, it will also allow you to execute `.crs` scripts *without* having to specify the file extension, in the same way that `.exe` and `.bat` files can be used.
 
-If you want to make a script usable across platforms, it is recommended that you use *both* a hashbang line *and* give the file a `.crs` file extension.
+If you want to make a script usable across platforms, it is recommended that you use *both* a shebang line *and* give the file a `.crs` file extension.
 
 <a name="usage"></a>
 ## Usage
 
-Generally, you will want to use `cargo-eval` by invoking it as `cargo script` (note the lack of a hypen).  Doing so is equivalent to invoking it as `cargo-eval script`.  `cargo-eval` supports several other subcommands, which can be accessed by running `cargo-eval` directly.  You can also get an overview of the available options using the `--help` flag.
+Generally, you will want to use `cargo-eval` by invoking it as a `cargo` subcommand with `cargo script` (note the lack of a hypen). You can get an overview of the available options using the `--help` flag.
 
 <a name="scripts"></a>
 ### Scripts
@@ -92,7 +83,7 @@ The output of Cargo will be hidden unless compilation fails, or takes longer tha
 
 `cargo-eval` will also look for embedded dependency and manifest information in the script.  For example, all of the following are equivalent:
 
-- `now.crs` (code block manifest with UNIX hashbang and `.crs` extension):
+- `now.crs` (code block manifest with UNIX shebang and `.crs` extension):
 
     ```rust
     #!/usr/bin/env cargo eval --
@@ -117,7 +108,7 @@ The output of Cargo will be hidden unless compilation fails, or takes longer tha
     // You can also leave off the version number, in which case, it's assumed
     // to be "*".  Also, the `cargo-deps` comment *must* be a single-line
     // comment, and it *must* be the first thing in the file, after the
-    // hashbang.
+    // shebang.
     extern crate time;
     fn main() {
         println!("{}", time::now().rfc822z());
