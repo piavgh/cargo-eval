@@ -4,7 +4,7 @@ This module is concerned with how `cargo-eval` extracts the manfiest from a scri
 use std::collections::HashMap;
 use std::path::Path;
 
-use pulldown_cmark::{Parser, Options, Event, Tag};
+use pulldown_cmark::{CodeBlockKind, Parser, Options, Event, Tag};
 use regex::Regex;
 use toml;
 
@@ -612,7 +612,7 @@ fn scrape_markdown_manifest(content: &str) -> Option<String> {
 
   let md = Parser::new_ext(&content, exts);
 
-  let mut it = md.skip_while(|e| if let Event::Start(Tag::CodeBlock(ref info)) = e {
+  let mut it = md.skip_while(|e| if let Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(ref info))) = e {
     info.to_lowercase() != "cargo"
   } else {
     true

@@ -21,31 +21,31 @@ default = ["suppress-cargo-output"]
 suppress-cargo-output = ["chan"]
 
 [dependencies]
-chan = { version = "0.1", optional = true }
-clap = "2.33"
-env_logger = "0.6"
-pulldown-cmark = "0.5"
-lazy_static = "1"
-log = "0.4"
-open = "1.2.0"
-regex = "1"
+chan = { version = "0.1.23", optional = true }
+clap = "2.33.0"
+env_logger = "0.7.1"
+pulldown-cmark = "0.7.0"
+lazy_static = "1.4.0"
+log = "0.4.8"
+open = "1.4.0"
+regex = "1.3.5"
 shaman = "0.1.0"
-dirs = "2"
-toml = "0.5"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+dirs = "2.0.2"
+toml = "0.5.6"
+serde = { version = "1.0.105", features = ["derive"] }
+serde_json = "1.0.48"
 
 [target.'cfg(windows)'.dependencies]
-itertools = "0.8"
-winreg = "0.6"
+itertools = "0.9.0"
+winreg = "0.7.0"
 
 [target.'cfg(unix)'.dependencies]
-atty = "0.2.2"
+atty = "0.2.14"
 
 [dev-dependencies]
-gcc = "0.3.45"
+gcc = "0.3.55"
 scan-rules = "0.2.0"
-tempdir = "0.3.5"
+tempdir = "0.3.7"
 
 [profile.release]
 lto = true
