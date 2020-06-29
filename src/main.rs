@@ -44,7 +44,6 @@ mod util;
 #[cfg(windows)]
 mod file_assoc;
 
-use std::error::Error;
 use std::ffi::OsString;
 use std::fs;
 use std::io::{Read, Write};
@@ -456,7 +455,7 @@ fn clean_cache(max_age: u128) -> Result<()> {
             };
             info!("meta_mtime: {:>20?} ms", meta_mtime);
 
-            (meta_mtime <= cutoff)
+            meta_mtime <= cutoff
         };
 
         if remove_dir() {
@@ -826,7 +825,7 @@ fn decide_action_for(
         Ok(meta) => meta,
         Err(err) => {
             info!("recompiling because: failed to load metadata");
-            debug!("get_pkg_metadata error: {}", err.description());
+            debug!("get_pkg_metadata error: {}", err);
             bail!(compile: true)
         }
     };
