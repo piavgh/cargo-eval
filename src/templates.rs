@@ -3,8 +3,6 @@ This module contains code related to template support.
 */
 use crate::app;
 use crate::error::{Blame, MainError, Result, ResultExt};
-use clap;
-use open;
 use regex::Regex;
 use std::borrow::Cow;
 use std::collections::HashMap;

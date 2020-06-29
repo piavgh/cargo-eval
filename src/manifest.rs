@@ -6,7 +6,6 @@ use std::path::Path;
 
 use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag};
 use regex::Regex;
-use toml;
 
 use crate::error::{Blame, Result};
 use crate::templates;
@@ -819,7 +818,7 @@ fn extract_comment(s: &str) -> Result<String> {
             // Update nesting and look for end-of-comment.
             let mut end_of_comment = None;
 
-            for (end, marker) in { nesting_re.find_iter(line).map(|m| (m.start(), m.as_str())) } {
+            for (end, marker) in nesting_re.find_iter(line).map(|m| (m.start(), m.as_str())) {
                 match (marker, depth) {
                     ("/*", _) => depth += 1,
                     ("*/", 1) => {

@@ -3,7 +3,6 @@
 
 use std::io;
 
-use clap;
 use itertools::Itertools;
 use winreg::{enums as wre, RegKey};
 

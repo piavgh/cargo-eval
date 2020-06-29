@@ -2,7 +2,6 @@ use std::env;
 use std::path::PathBuf;
 
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, SubCommand};
-use dirs;
 
 use crate::templates;
 
