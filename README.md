@@ -16,17 +16,18 @@ Some of `cargo-eval`'s features include:
 
 Table of contents:
 
-- [Installation](#installation)
-  - [Features](#features)
-  - [Self-Executing Scripts](#shebang)
-- [Usage](#usage)
-  - [Scripts](#scripts)
-  - [Expressions](#expressions)
-  - [Stream Filters](#filters)
-  - [Environment Variables](#env-vars)
-  - [Templates](#templates)
-- [License](#license)
-  - [Contribution](#contribution)
+- [`cargo-eval`](#cargo-eval)
+  - [Installation](#installation)
+    - [Cargo Features](#cargo-features)
+    - [Self-Executing Scripts](#self-executing-scripts)
+  - [Usage](#usage)
+    - [Scripts](#scripts)
+    - [Expressions](#expressions)
+    - [Stream Filters](#stream-filters)
+    - [Environment Variables](#environment-variables)
+    - [Templates](#templates)
+  - [License](#license)
+    - [Contribution](#contribution)
 
 <a name="installation"></a>
 ## Installation
@@ -64,7 +65,7 @@ If you want to make a script usable across platforms, it is recommended that you
 <a name="usage"></a>
 ## Usage
 
-Generally, you will want to use `cargo-eval` by invoking it as a `cargo` subcommand with `cargo script` (note the lack of a hypen). You can get an overview of the available options using the `--help` flag.
+Generally, you will want to use `cargo-eval` by invoking it as a `cargo` subcommand with `cargo eval` (note the lack of a hypen). You can get an overview of the available options using the `--help` flag.
 
 <a name="scripts"></a>
 ### Scripts
